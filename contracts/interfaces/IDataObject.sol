@@ -27,7 +27,7 @@ interface IDataObject {
      * @param data Operation-specific data
      * @return Operation-specific data (can be empty)
      */
-    function write(DataPoint dp, bytes4 operation, bytes calldata data) external returns (bytes memory);
+    function write(DataPoint dp, bytes4 operation, bytes calldata data) external payable returns (bytes memory);
 
     /**
      * @notice Sets DataIndex Implementation
