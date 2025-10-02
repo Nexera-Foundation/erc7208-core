@@ -44,6 +44,7 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
 
     /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.SampleDataObject
     struct SampleDataObjectStorage {
+        /// @dev Data for each DataPoint
         mapping(DataPoint => DpData) dpData;
     }
 
