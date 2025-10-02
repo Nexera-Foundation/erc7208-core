@@ -1,0 +1,197 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+
+import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {IDataObject} from "../interfaces/IDataObject.sol";
+import {IDataIndex} from "../interfaces/IDataIndex.sol";
+import {IDataPointRegistry} from "../interfaces/IDataPointRegistry.sol";
+import {DataPoint, DataPoints} from "./DataPoints.sol";
+import {ChainidTools} from "./ChainidTools.sol";
+
+/**
+ * @title Base Data Object
+ * @notice Base contract for DataObject implementations
+ */
+abstract contract BaseDataObjectUpgradeable is IDataObject, AccessControlUpgradeable {
+    /**
+     * @dev Error thrown when the msg.sender is not the expected caller
+     * @param dp The DataPoint identifier
+     * @param sender The msg.sender address
+     */
+    error InvalidCaller(DataPoint dp, address sender);
+
+    /**
+     * @dev Error thrown when there is no DataIndex implementation for a DataPoint
+     * @param dp The DataPoint identifier
+     */
+    error DataIndexImplementationNotSet(DataPoint dp);
+
+    /**
+     * @dev Error thrown when the proposed address is not the Data Index implementation
+     * @param dataIndexImpl The Data Index implementation
+     */
+    error IncorrectDataIndexImplementationAddress(address dataIndexImpl);
+
+    /// @dev Error thrown when call with native payment is not supported by the DataObject
+    error NativePaymentNotSupported();
+
+    /**
+     * @notice Event emitted when default Data Index implementation is set
+     * @param dataIndexImplementation The Data Index implementation address
+     */
+    event DefaultDataIndexImplementationSet(address dataIndexImplementation);
+
+    /**
+     * @notice Event emitted when the Data Index implementation is set
+     * @param dp The DataPoint identifier
+     * @param dataIndexImplementation The Data Index implementation address
+     */
+    event DataIndexImplementationSet(DataPoint dp, address dataIndexImplementation);
+
+    /**
+     * Executes requested read operation
+     * @dev It's recommended to NOT include actual function implementation to this function directly.
+     * Instead this one should just chouse the correct internal function with actual implementation
+     * @param dp DataPoint with the data we should work on
+     * @param operation Operation to execute
+     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * @return Operation result. It's recommended to use ABI encoding for this
+     */
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual returns (bytes memory);
+
+    /**
+     * Executes requested write operation
+     * @dev It's recommended to NOT include actual function implementation to this function directly.
+     * Instead this one should just chouse the correct internal function with actual implementation
+     * @param dp DataPoint with the data we should work on
+     * @param operation Operation to execute
+     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * @return Operation result. It's recommended to use ABI encoding for this
+     */
+    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual returns (bytes memory);
+
+    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.BaseDataObject
+    struct BaseDataObjectStorage {
+        /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
+        IDataIndex defaultDataIndex;
+        /// @dev Mapping of active DataIndexes for DataPoints
+        mapping(DataPoint => IDataIndex) activeDataIndexes;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant BaseDataObjectStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+
+    function _getBaseDataObjectStorage() private pure returns (BaseDataObjectStorage storage $) {
+        assembly {
+            $.slot := BaseDataObjectStorageLocation
+        }
+    }
+
+    /**
+     * @notice Modifier to check if the caller is the Data Index implementation which is set for the DataPoint, or the default one.
+     * @param dp The DataPoint identifier
+     */
+    modifier onlyDataIndex(DataPoint dp) {
+        IDataIndex dataIndexImpl = _dataIndex(dp);
+        if (address(dataIndexImpl) != msg.sender) revert InvalidCaller(dp, msg.sender);
+        _;
+    }
+
+    function __BaseDataObject_init() internal onlyInitializing {
+        __BaseDataObject_init_unchained();
+    }
+
+    function __BaseDataObject_init_unchained() internal onlyInitializing {
+        _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    /// @inheritdoc IDataObject
+    function read(DataPoint dp, bytes4 operation, bytes calldata data) external view returns (bytes memory) {
+        return _dispatchRead(dp, operation, data);
+    }
+
+    /// @inheritdoc IDataObject
+    function write(DataPoint dp, bytes4 operation, bytes calldata data) external payable onlyDataIndex(dp) returns (bytes memory) {
+        _verifyNativePaymentInWrite();
+        return _dispatchWrite(dp, operation, data);
+    }
+
+    /// @inheritdoc IDataObject
+    function setDataIndexImplementation(DataPoint dp, address newDataIndexImpl) external {
+        _requireDataIndexIsValid(newDataIndexImpl);
+        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
+
+        IDataIndex currentDataIndex = $.activeDataIndexes[dp];
+        if (address(currentDataIndex) == address(0)) {
+            // Registering new DataPoint
+            // Should be called by DataPoint Admin
+            require(_isDataPointAdmin(dp, _msgSender()), InvalidCaller(dp, _msgSender()));
+        } else {
+            // Updating the DataPoint
+            // Should be called by current Data Index or DataPoint Admin
+            require(address(currentDataIndex) == _msgSender() || _isDataPointAdmin(dp, _msgSender()), InvalidCaller(dp, _msgSender()));
+        }
+        $.activeDataIndexes[dp] = IDataIndex(newDataIndexImpl);
+        emit DataIndexImplementationSet(dp, newDataIndexImpl);
+    }
+
+    /**
+     * Set default DataIndex implementation, which should be used if none is set for a DataPoint
+     * @param dataIndex Address DataIndex implementations
+     * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
+     */
+    function setDefaultDataIndexImplementation(address dataIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (dataIndex != address(0)) {
+            _requireDataIndexIsValid(dataIndex);
+        }
+        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
+        $.defaultDataIndex = IDataIndex(dataIndex);
+        emit DefaultDataIndexImplementationSet(dataIndex);
+    }
+
+    /**
+     * Returns active DataIndex address for the DataPoint
+     * @param dp DataPoint to check
+     */
+    function _dataIndex(DataPoint dp) internal view returns (IDataIndex) {
+        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
+        IDataIndex di = $.activeDataIndexes[dp];
+        if (address(di) == address(0)) {
+            di = IDataIndex($.defaultDataIndex);
+            if (address(di) == address(0)) revert DataIndexImplementationNotSet(dp);
+        }
+        return di;
+    }
+
+    /**
+     * Returns if provided account has admin permissions for DataPoint
+     * @param dp DataPoint to check
+     */
+    function _isDataPointAdmin(DataPoint dp, address account) internal view returns (bool) {
+        (uint32 chainId, address registry, ) = DataPoints.decode(dp);
+        ChainidTools.requireCurrentChain(chainId);
+        return IDataPointRegistry(registry).isAdmin(dp, account);
+    }
+
+    /**
+     * @dev Override this function to support native coin payment for write() call
+     * If native payment should be allowed in the DataObject, one can override
+     * this function with an empty one and handle the payment in the _dispatchWrite()
+     */
+    function _verifyNativePaymentInWrite() internal virtual {
+        if (msg.value > 0) revert NativePaymentNotSupported();
+    }
+
+    /**
+     * Verifies if provided address is valid DataIndex
+     * @param dataIndex Address of supposed DataIndex
+     * @dev Reverts if it's not valid address
+     */
+    function _requireDataIndexIsValid(address dataIndex) internal view virtual {
+        if (
+            !IERC165(dataIndex).supportsInterface(type(IERC165).interfaceId) ||
+            !IERC165(dataIndex).supportsInterface(type(IDataIndex).interfaceId)
+        ) revert IncorrectDataIndexImplementationAddress(dataIndex);
+    }
+}
