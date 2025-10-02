@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IDataIndex} from "./IDataIndex.sol";
 import {IDataObject} from "./IDataObject.sol";
 import {DataPoint} from "../utils/DataPoints.sol";
 
@@ -32,7 +31,7 @@ interface IDataObject {
     /**
      * @notice Sets DataIndex Implementation
      * @param dp Identifier of the DataPoint
-     * @param newImpl address of the new DataIndex implementation
+     * @param newDataIndexImpl address of the new DataIndex implementation
      */
-    function setDataIndexImplementation(DataPoint dp, IDataIndex newImpl) external;
+    function setDataIndexImplementation(DataPoint dp, address newDataIndexImpl) external;
 }
