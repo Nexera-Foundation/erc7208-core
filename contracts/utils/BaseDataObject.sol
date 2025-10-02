@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
 import {IDataIndex} from "../interfaces/IDataIndex.sol";
@@ -14,23 +14,12 @@ import {ChainidTools} from "./ChainidTools.sol";
  * @title Base Data Object
  * @notice Base contract for DataObject implementations
  */
-abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpgradeable {
-    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.BaseDataObject
-    struct BaseDataObjectStorage {
-        /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
-        IDataIndex defaultDataIndex;
-        /// @dev Mapping of DataIndexes for DataPoints overrides (used instead of default DataIndex)
-        mapping(DataPoint => IDataIndex) overrideDataIndexes;
-    }
+abstract contract BaseDataObject is IBaseDataObject, AccessControl {
+    /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
+    IDataIndex private _defaultDataIndex;
 
-    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant BaseDataObjectStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
-
-    function _getBaseDataObjectStorage() private pure returns (BaseDataObjectStorage storage $) {
-        assembly {
-            $.slot := BaseDataObjectStorageLocation
-        }
-    }
+    /// @dev Mapping of DataIndexes for DataPoints overrides (used instead of default DataIndex)
+    mapping(DataPoint => IDataIndex) private _overrideDataIndexes;
 
     /**
      * @notice Modifier to check if the caller is the Data Index implementation which is set for the DataPoint, or the default one.
@@ -42,11 +31,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         _;
     }
 
-    function __BaseDataObject_init() internal onlyInitializing {
-        __BaseDataObject_init_unchained();
-    }
-
-    function __BaseDataObject_init_unchained() internal onlyInitializing {
+    constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
@@ -74,12 +59,12 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
 
     /// @inheritdoc IBaseDataObject
     function defaultDataIndex() public view returns (address) {
-        return address(_getBaseDataObjectStorage().defaultDataIndex);
+        return address(_defaultDataIndex);
     }
 
     /// @inheritdoc IBaseDataObject
     function overrideDataIndex(DataPoint dp) public view returns (address) {
-        return address(_getBaseDataObjectStorage().overrideDataIndexes[dp]);
+        return address(_overrideDataIndexes[dp]);
     }
 
     /// @inheritdoc IBaseDataObject
@@ -99,11 +84,10 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
     }
 
     /// @inheritdoc IDataObject
-    function setDataIndexImplementation(DataPoint dp, address newDataIndex) external {
-        _requireDataIndexIsValid(newDataIndex);
-        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
+    function setDataIndexImplementation(DataPoint dp, address newDataIndexImpl) external {
+        _requireDataIndexIsValid(newDataIndexImpl);
 
-        IDataIndex currentDataIndex = $.overrideDataIndexes[dp];
+        IDataIndex currentDataIndex = _overrideDataIndexes[dp];
         if (address(currentDataIndex) == address(0)) {
             // Registering new DataPoint
             // Should be called by DataPoint Admin
@@ -113,21 +97,16 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
             // Should be called by current Data Index or DataPoint Admin
             require(address(currentDataIndex) == _msgSender() || _isDataPointAdmin(dp, _msgSender()), InvalidCaller(dp, _msgSender()));
         }
-        $.overrideDataIndexes[dp] = IDataIndex(newDataIndex);
-        emit DataIndexImplementationSet(dp, newDataIndex);
+        _overrideDataIndexes[dp] = IDataIndex(newDataIndexImpl);
+        emit DataIndexImplementationSet(dp, newDataIndexImpl);
     }
 
-    /**
-     * Set default DataIndex implementation, which should be used if none is set for a DataPoint
-     * @param newDataIndex Address DataIndex implementations
-     * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
-     */
+    /// @inheritdoc IBaseDataObject
     function setDefaultDataIndexImplementation(address newDataIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newDataIndex != address(0)) {
             _requireDataIndexIsValid(newDataIndex);
         }
-        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
-        $.defaultDataIndex = IDataIndex(newDataIndex);
+        _defaultDataIndex = IDataIndex(newDataIndex);
         emit DefaultDataIndexImplementationSet(newDataIndex);
     }
 
@@ -136,10 +115,9 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
      * @param dp DataPoint to check
      */
     function _dataIndex(DataPoint dp) internal view returns (IDataIndex) {
-        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
-        IDataIndex di = $.overrideDataIndexes[dp];
+        IDataIndex di = _overrideDataIndexes[dp];
         if (address(di) == address(0)) {
-            di = IDataIndex($.defaultDataIndex);
+            di = IDataIndex(_defaultDataIndex);
             if (address(di) == address(0)) revert DataIndexImplementationNotSet(dp);
         }
         return di;
@@ -166,11 +144,11 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
 
     /**
      * Verifies if provided address is valid DataIndex
-     * @param dataIndex Address of supposed DataIndex
+     * @param newDataIndex Address of supposed DataIndex
      * @dev Reverts if it's not valid address
      */
-    function _requireDataIndexIsValid(address dataIndex) internal view virtual {
-        if (!IERC165(dataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(dataIndex).supportsInterface(type(IDataIndex).interfaceId))
-            revert IncorrectDataIndexImplementationAddress(dataIndex);
+    function _requireDataIndexIsValid(address newDataIndex) internal view virtual {
+        if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
+            revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
 }
