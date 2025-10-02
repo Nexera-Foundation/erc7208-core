@@ -166,11 +166,11 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
 
     /**
      * Verifies if provided address is valid DataIndex
-     * @param dataIndex Address of supposed DataIndex
+     * @param newDataIndex Address of supposed DataIndex
      * @dev Reverts if it's not valid address
      */
-    function _requireDataIndexIsValid(address dataIndex) internal view virtual {
-        if (!IERC165(dataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(dataIndex).supportsInterface(type(IDataIndex).interfaceId))
-            revert IncorrectDataIndexImplementationAddress(dataIndex);
+    function _requireDataIndexIsValid(address newDataIndex) internal view virtual {
+        if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
+            revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
 }
