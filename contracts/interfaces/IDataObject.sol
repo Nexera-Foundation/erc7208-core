@@ -31,7 +31,7 @@ interface IDataObject {
     /**
      * @notice Sets DataIndex Implementation
      * @param dp Identifier of the DataPoint
-     * @param newDataIndexImpl address of the new DataIndex implementation
+     * @param newDataIndex address of the new DataIndex implementation
      */
-    function setDataIndexImplementation(DataPoint dp, address newDataIndexImpl) external;
+    function setDataIndexImplementation(DataPoint dp, address newDataIndex) external;
 }
