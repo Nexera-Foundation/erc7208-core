@@ -1,0 +1,166 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.27;
+
+import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IDataIndex, IDataObject, DataPoint} from "../../interfaces/IDataIndex.sol";
+import {ISampleDataObjectOperations} from "../SampleDataObject.sol";
+
+/**
+ * @title Race to the Target
+ * @author Your Name / Your Team
+ * @notice A competitive on-chain game of strategy and timing where players
+ * pay small fees to manipulate a shared number. The goal is to be the first
+ * to set this number to a specific target value and win the entire prize pool.
+ *
+ * @dev This contract serves as the DataManager in an ERC-7208 architecture. It
+ * contains all the game logic and interacts with a separate DataObject contract
+ * to store the game's state (the current value).
+ *
+ * ---
+ *
+ * ### CONCEPT
+ *
+ * The objective is simple: be the first player to set a public counter (`value`)
+ * to a predetermined `targetValue`.
+ *
+ * ---
+ *
+ * ### MECHANICS
+ *
+ * Every action in the game requires a fee, which is collected in a central
+ * `prizePool`. Players have access to three distinct actions, creating strategic depth:
+ *
+ * 1. **increment() & decrement()**: These are low-cost actions that allow players
+ * to move the `value` up or down by one. They are ideal for making steady,
+ * predictable progress.
+ *
+ * 2. **jump(expectedValue, newValue)**: This is a high-cost, high-reward strategic
+ * move. It allows a player to attempt to set the `value` to a new number, but
+ * the transaction will only succeed if the current `value` on-chain matches the
+ * `expectedValue` provided. This atomic `compare-and-set` operation is perfect for:
+ * - Making a Winning Move: Instantly setting the value to the `targetValue`.
+ * - Strategic Sabotage: Drastically changing the value to throw off opponents.
+ * - Making a Large Leap: Quickly closing the distance to the target.
+ *
+ * ---
+ *
+ * ### WINNING
+ *
+ * The first player whose action results in the `value` matching the `targetValue`
+ * wins the game. The winner is then able to withdraw the entire `prizePool`.
+ */
+contract RaceToTheTargetDataManager is Initializable {
+    /// @dev Indicates configuration error: target value can not be zero
+    error IncorrectTargetValue();
+    /// @dev Indicates configuration error: Jump action price should be no less than Step action price
+    error JumpPriceLessThanStepPrice();
+    /// @dev Indicates that incorrect amount of native currency was sent with the call
+    error IncorrectPayment(uint256 actualPayment, uint256 expectedPayment);
+
+    /// @dev Emitted when target value reached
+    event TargetReached(address winner, uint256 prize);
+
+    /// @dev Type of the action, used to determine correct payment
+    enum ActionType {
+        STEP,
+        JUMP
+    }
+
+    /// @dev Address of DataIndex contract
+    IDataIndex internal _dataIndex;
+    /// @dev DataPoint used in this instance of the game
+    DataPoint internal _dataPoint;
+    /// @dev Address of DataObject used to store current game value
+    IDataObject internal _dataObject;
+
+    /// @dev Price for increment() & decrement() actions
+    uint256 public stepPrice;
+
+    /// @dev Price for jump() action
+    uint256 public jumpPrice;
+
+    /// @dev Value players have to reach to win the prize
+    uint256 public targetValue;
+
+    modifier withPayment(ActionType actionType) {
+        _requirePayment(actionType);
+        _;
+    }
+
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
+        IDataIndex dataIndex_,
+        DataPoint dataPoint_,
+        IDataObject dataObject_,
+        uint256 targetValue_,
+        uint256 stepPrice_,
+        uint256 jumpPrice_
+    ) external initializer {
+        // Validate game details
+        // Note: Zero Jump & Step prices allowed for "just-for-fun" game
+        require(targetValue_ > 0, IncorrectTargetValue());
+        require(jumpPrice_ >= stepPrice_, JumpPriceLessThanStepPrice());
+
+        // Store configuration
+        _dataIndex = dataIndex_;
+        _dataPoint = dataPoint_;
+        _dataObject = dataObject_;
+        targetValue = targetValue_;
+        stepPrice = stepPrice_;
+        jumpPrice = jumpPrice_;
+    }
+
+    function prizePool() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function currentValue() public view returns (uint256) {
+        return abi.decode(_dataObject.read(_dataPoint, ISampleDataObjectOperations.value.selector, ""), (uint256));
+    }
+
+    function increment() external payable withPayment(ActionType.STEP) {
+        uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.inc.selector, ""), (uint256));
+        _handleNewValue(newValue);
+    }
+
+    function decrement() external payable withPayment(ActionType.STEP) {
+        uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.inc.selector, ""), (uint256));
+        _handleNewValue(newValue);
+    }
+
+    function jump(uint256 expectedValue, uint256 newValue) external payable withPayment(ActionType.JUMP) {
+        bool success = abi.decode(
+            _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.compareAndSet.selector, abi.encode(expectedValue, newValue)),
+            (bool)
+        );
+        if (success) {
+            _handleNewValue(newValue);
+        }
+    }
+
+    function _requirePayment(ActionType actionType) internal view {}
+
+    function _handleNewValue(uint256 newValue) internal {
+        if (newValue != targetValue) {
+            // Target not reached, so do nothing
+            return;
+        }
+
+        // Target reached
+        uint256 prize = prizePool();
+        emit TargetReached(msg.sender, prize);
+
+        // Send prize to the winner, if any
+        if (prize > 0) {
+            // Note: If winner can not accept the payment, tx will be reverted
+            Address.sendValue(payable(msg.sender), prize);
+        }
+
+        // Reset game state (0 value is the starting point)
+        _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.set.selector, abi.encode(0));
+    }
+}
