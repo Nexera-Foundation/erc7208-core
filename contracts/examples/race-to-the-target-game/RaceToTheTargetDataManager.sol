@@ -40,7 +40,6 @@ import {ISampleDataObjectOperations} from "../SampleDataObject.sol";
  * `expectedValue` provided. This atomic `compare-and-set` operation is perfect for:
  * - Making a Winning Move: Instantly setting the value to the `targetValue`.
  * - Strategic Sabotage: Drastically changing the value to throw off opponents.
- * - Making a Large Leap: Quickly closing the distance to the target.
  *
  * ---
  *
