@@ -91,9 +91,22 @@ contract RaceToTheTargetDataManager is Initializable {
     }
 
     constructor() {
+        // This contract SHOULD be used via Proxy (see how the RaceToTheTargetFactory uses Clones to deploy such proxies)
+        // Such proxies can not use constructor for initialization, instead `initialize()` should be called.
+
+        // Here we are disabling initialization of the logic contract: it should not be used directly
         _disableInitializers();
     }
 
+    /**
+     * Initialize the game instance (proxy)
+     * @param dataIndex_ Address of DataIndex to be used for writing to a DataObject
+     * @param dataPoint_ DataPoint to work with
+     * @param dataObject_ Address of SampleDataObject
+     * @param targetValue_ Value to be reached to win the game
+     * @param stepPrice_ Price of increment & decrement actions
+     * @param jumpPrice_ Price of jump action
+     */
     function initialize(
         IDataIndex dataIndex_,
         DataPoint dataPoint_,
