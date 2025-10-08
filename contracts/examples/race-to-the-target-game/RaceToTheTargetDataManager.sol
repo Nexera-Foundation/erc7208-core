@@ -142,7 +142,10 @@ contract RaceToTheTargetDataManager is Initializable {
         }
     }
 
-    function _requirePayment(ActionType actionType) internal view {}
+    function _requirePayment(ActionType actionType) internal view {
+        uint256 requiredValue = (actionType == ActionType.STEP)?stepPrice:jumpPrice;
+        require(msg.value == requiredValue, IncorrectPayment(msg.value, requiredValue));
+    }
 
     function _handleNewValue(uint256 newValue) internal {
         if (newValue != targetValue) {
