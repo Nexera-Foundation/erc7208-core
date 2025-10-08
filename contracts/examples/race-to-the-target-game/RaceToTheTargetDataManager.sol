@@ -8,7 +8,6 @@ import {ISampleDataObjectOperations} from "../SampleDataObject.sol";
 
 /**
  * @title Race to the Target
- * @author Your Name / Your Team
  * @notice A competitive on-chain game of strategy and timing where players
  * pay small fees to manipulate a shared number. The goal is to be the first
  * to set this number to a specific target value and win the entire prize pool.
