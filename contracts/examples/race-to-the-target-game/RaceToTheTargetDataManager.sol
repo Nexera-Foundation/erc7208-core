@@ -58,6 +58,8 @@ contract RaceToTheTargetDataManager is Initializable {
     /// @dev Indicates that incorrect amount of native currency was sent with the call
     error IncorrectPayment(uint256 actualPayment, uint256 expectedPayment);
 
+    /// @dev Emitted when value is changed
+    event ValueChanged(uint256 newValue);
     /// @dev Emitted when target value reached
     event TargetReached(address winner, uint256 prize);
 
@@ -143,13 +145,14 @@ contract RaceToTheTargetDataManager is Initializable {
     }
 
     function _requirePayment(ActionType actionType) internal view {
-        uint256 requiredValue = (actionType == ActionType.STEP)?stepPrice:jumpPrice;
+        uint256 requiredValue = (actionType == ActionType.STEP) ? stepPrice : jumpPrice;
         require(msg.value == requiredValue, IncorrectPayment(msg.value, requiredValue));
     }
 
     function _handleNewValue(uint256 newValue) internal {
         if (newValue != targetValue) {
-            // Target not reached, so do nothing
+            // Target not reached, so do nothing, except emitting event
+            emit ValueChanged(newValue);
             return;
         }
 
@@ -165,5 +168,6 @@ contract RaceToTheTargetDataManager is Initializable {
 
         // Reset game state (0 value is the starting point)
         _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.set.selector, abi.encode(0));
+        emit ValueChanged(0);
     }
 }
