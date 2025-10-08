@@ -65,6 +65,9 @@ contract SampleDataObject is BaseDataObject {
             return abi.encode(_inc(dp));
         } else if (operation == ISampleDataObjectOperations.dec.selector) {
             return abi.encode(_dec(dp));
+        } else if (operation == ISampleDataObjectOperations.set.selector) {
+            _set(dp, abi.decode(data, (uint256)));
+            return "";
         } else if (operation == ISampleDataObjectOperations.compareAndSet.selector) {
             (uint256 expectedValue, uint256 newValue) = abi.decode(data, (uint256, uint256));
             return abi.encode(_compareAndSet(dp, expectedValue, newValue));
