@@ -11,6 +11,9 @@ import {RaceToTheTargetDataManager} from "./RaceToTheTargetDataManager.sol";
  * with configurations he wants.
  */
 contract RaceToTheTargetFactory {
+    /// @dev Emitted when a new instance of the game is deployed
+    event InstanceDeployed(address instance, DataPoint dataPoint);
+
     IDataPointRegistry registry;
     IDataIndex dataIndex;
     IDataObject dataObject;
@@ -23,6 +26,14 @@ contract RaceToTheTargetFactory {
         gameImplementation = gameImplementation_;
     }
 
+    /**
+     * Deploy a new game instance
+     * @param targetValue value to reach
+     * @param stepPrice price of increment/decrement actions
+     * @param jumpPrice price of jump action
+     * @return gameInstance Address of the new game instance
+     * @return gameDataPoint DataPoint used for this instance
+     */
     function deploy(uint256 targetValue, uint256 stepPrice, uint256 jumpPrice) external returns(address gameInstance, DataPoint gameDataPoint){
         // Note: game configuration is validated inside RaceToTheTargetDataManager.initialize(), we do not repeat it here
 
@@ -44,6 +55,8 @@ contract RaceToTheTargetFactory {
             stepPrice,
             jumpPrice
         );
+
+        emit InstanceDeployed(gameInstance, gameDataPoint);
 
         // Note: We DO NOT transferring DataPoint ownership to the deployer
         // because if we do it, he will be able to change the data stored
