@@ -76,13 +76,13 @@ contract RaceToTheTargetDataManager is Initializable {
     /// @dev Address of DataObject used to store current game value
     IDataObject internal _dataObject;
 
-    /// @dev Price for increment() & decrement() actions
+    /// @notice Price for increment() & decrement() actions
     uint256 public stepPrice;
 
-    /// @dev Price for jump() action
+    /// @notice Price for jump() action
     uint256 public jumpPrice;
 
-    /// @dev Value players have to reach to win the prize
+    /// @notice Value players have to reach to win the prize
     uint256 public targetValue;
 
     modifier withPayment(ActionType actionType) {
@@ -116,24 +116,48 @@ contract RaceToTheTargetDataManager is Initializable {
         jumpPrice = jumpPrice_;
     }
 
+    /**
+     * @return Current prize pool
+     */
     function prizePool() public view returns (uint256) {
         return address(this).balance;
     }
 
+    /**
+     * @return Current value
+     */
     function currentValue() public view returns (uint256) {
         return abi.decode(_dataObject.read(_dataPoint, ISampleDataObjectOperations.value.selector, ""), (uint256));
     }
 
+    /**
+     * @notice Increments the value.
+     * Sender should pay `stepPrice` to call this
+     * If targetValue reached after increment, it will send prize to the sender.
+     */
     function increment() external payable withPayment(ActionType.STEP) {
         uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.inc.selector, ""), (uint256));
         _handleNewValue(newValue);
     }
 
+    /**
+     * @notice Decrements the value
+     * Sender should pay `stepPrice` to call this
+     * If targetValue reached after decrement, it will send prize to the sender.
+     * Note: if currentValue is zero, it can not be decremented and will revert.
+     */
     function decrement() external payable withPayment(ActionType.STEP) {
         uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.inc.selector, ""), (uint256));
         _handleNewValue(newValue);
     }
 
+    /**
+     * @notice Set the value to a newValue
+     * @param expectedValue Current value at a time tx with this call is included to the blockchain
+     * @param newValue New value to set
+     * Sender should pay `jumpPrice` to call this
+     * If newValue is targetValue and execution is successful, the prize will be sent to the sender.
+     */
     function jump(uint256 expectedValue, uint256 newValue) external payable withPayment(ActionType.JUMP) {
         bool success = abi.decode(
             _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.compareAndSet.selector, abi.encode(expectedValue, newValue)),
@@ -144,11 +168,19 @@ contract RaceToTheTargetDataManager is Initializable {
         }
     }
 
+    /**
+     * @dev Verifies the payment matches action type
+     * @param actionType Type of the action being executed
+     */
     function _requirePayment(ActionType actionType) internal view {
         uint256 requiredValue = (actionType == ActionType.STEP) ? stepPrice : jumpPrice;
         require(msg.value == requiredValue, IncorrectPayment(msg.value, requiredValue));
     }
 
+    /**
+     * @dev Called after newValue is successfully set
+     * @param newValue the new value 
+     */
     function _handleNewValue(uint256 newValue) internal {
         if (newValue != targetValue) {
             // Target not reached, so do nothing, except emitting event
