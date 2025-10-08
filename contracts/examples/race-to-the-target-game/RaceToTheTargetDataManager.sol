@@ -59,6 +59,8 @@ contract RaceToTheTargetDataManager is Initializable {
 
     /// @dev Emitted when value is changed
     event ValueChanged(uint256 newValue);
+    /// @dev Emitted when Jump action is requested but failed
+    event JumpFailed(uint256 expectedValue, uint256 actualValue);
     /// @dev Emitted when target value reached
     event TargetReached(address winner, uint256 prize);
 
@@ -177,6 +179,8 @@ contract RaceToTheTargetDataManager is Initializable {
         );
         if (success) {
             _handleNewValue(newValue);
+        } else {
+            emit JumpFailed(newValue, currentValue());
         }
     }
 
