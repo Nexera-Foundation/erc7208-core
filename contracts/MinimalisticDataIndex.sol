@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
+import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IDataIndex} from "./interfaces/IDataIndex.sol";
 import {IDataObject} from "./interfaces/IDataObject.sol";
 import {IDataPointRegistry} from "./interfaces/IDataPointRegistry.sol";
@@ -11,10 +12,10 @@ import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
  * @title Data Index contract
  * @notice Minimalistic implementation of a Data Index contract
  * Supports only single-chain operations. DataPoints created on other chains are not supported.
- * @dev For security reasons DataManager's approval for a DataPoint is valid only while the 
+ * @dev For security reasons DataManager's approval for a DataPoint is valid only while the
  * DataPoint admin who initiated the approval has his admin permission.
  */
-contract MinimalisticDataIndex is IDataIndex {
+contract MinimalisticDataIndex is IDataIndex, ERC165 {
     /// @dev Error thrown when the sender is not an admin of the DataPoint
     error InvalidDataPointAdmin(DataPoint dp, address sender);
 
@@ -58,6 +59,11 @@ contract MinimalisticDataIndex is IDataIndex {
     modifier onlyApprovedDM(DataPoint dp) {
         require(isApprovedDataManager(dp, msg.sender), DataManagerNotApproved(dp, msg.sender));
         _;
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDataIndex).interfaceId || super.supportsInterface(interfaceId);
     }
 
     ///@inheritdoc IDataIndex
