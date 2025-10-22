@@ -1,0 +1,59 @@
+{
+    "name": "@nexera-foundation/erc7208-core",
+    "version": "0.0.2-dev",
+    "description": "ERC-7208 Interfaces & base contracts",
+    "repository": "https://github.com/Nexera-Foundation/erc7208-core.git",
+    "author": "Nexera <contact@nexeraprotocol.com>",
+    "license": "MIT",
+    "main": "./artifacts/index.js",
+    "types": "./artifacts/index.d.ts",
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "scripts": {
+        "build": "hardhat compile",
+        "test": "hardhat test",
+        "test:solidity": "hardhat test solidity",
+        "test:nodejs": "hardhat test nodejs",
+        "lint": "prettier --write {contracts,tests,ignition,scripts}/**/*.{sol,ts}",
+        "clean": "npx hardhat clean",
+        "publish:pkg": "npm publish"
+    },
+    "devDependencies": {
+        "@nomicfoundation/hardhat-ethers": "^4.0.0",
+        "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",
+        "@nomicfoundation/hardhat-ignition": "^3.0.0",
+        "@nomicfoundation/hardhat-ignition-ethers": "^3.0.0",
+        "@nomicfoundation/hardhat-ignition-viem": "^3.0.3",
+        "@nomicfoundation/hardhat-keystore": "^3.0.0",
+        "@nomicfoundation/hardhat-mocha": "^3.0.0",
+        "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
+        "@nomicfoundation/hardhat-node-test-runner": "^3.0.3",
+        "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
+        "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+        "@nomicfoundation/hardhat-typechain": "^3.0.0",
+        "@nomicfoundation/hardhat-verify": "^3.0.0",
+        "@nomicfoundation/hardhat-viem": "^3.0.0",
+        "@nomicfoundation/hardhat-viem-assertions": "^3.0.2",
+        "@nomicfoundation/ignition-core": "^3.0.0",
+        "@types/chai": "^4.2.0",
+        "@types/chai-as-promised": "^8.0.1",
+        "@types/mocha": ">=10.0.10",
+        "@types/node": "^22.8.5",
+        "chai": "^5.1.2",
+        "ethers": "^6.14.0",
+        "forge-std": "foundry-rs/forge-std#v1.10.0",
+        "hardhat": "^3.0.6",
+        "mocha": "^11.0.0",
+        "prettier": "^3.6.2",
+        "prettier-plugin-solidity": "^2.1.0",
+        "typescript": "~5.8.0",
+        "viem": "^2.37.6"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^5.4.0",
+        "@openzeppelin/contracts-upgradeable": "^5.4.0"
+    },
+    "packageManager": "yarn@1.22.22",
+    "type": "module"
+}

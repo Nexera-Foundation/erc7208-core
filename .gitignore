@@ -1,27 +1,41 @@
 # Node modules
 /node_modules
+**/node_modules
 
 # Compilation output
 /dist
+**/dist
 
 # pnpm deploy output
 /bundle
 
 # Hardhat Build Artifacts
 /artifacts
+**/artifacts
 
 # Hardhat compilation (v2) support directory
 /cache
+**/cache
 
 # Typechain output
 /types
+**/types
 
 # Hardhat coverage reports
 /coverage
+**/coverage
 
 # Private environment
 .env
+**/.env
 
 # Yarn local stuff
 /.yarn
 yarn-error.log
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
