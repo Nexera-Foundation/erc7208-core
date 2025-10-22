@@ -2,7 +2,7 @@
 /dist
 
 # Generated files
-/src/abi
+/src/artifacts
 
 # Node modules
 /node_modules

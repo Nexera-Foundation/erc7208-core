@@ -20,8 +20,8 @@
   "scripts": {
     "build": "yarn copy-abis && tsc -p tsconfig.build.json",
     "prepublishOnly": "yarn build",
-    "copy-abis": "mkdir -p src/abi && find ../contracts/artifacts/contracts -type f -name '*.json' ! -path '*/build-info/*' ! -name '*.dbg.json' ! -name 'artifacts.d.ts' -exec sh -c 'cp \"$1\" src/abi/\"$(basename \"$1\")\"' _ {} \\;",
-    "clean": "rm -rf dist src/abi"
+    "copy-abis": "rm -rf src/artifacts && cp -r ../contracts/artifacts/contracts src/artifacts",
+    "clean": "rm -rf dist src/artifacts"
   },
   "dependencies": {
     "ethers": "^6.13.5"
