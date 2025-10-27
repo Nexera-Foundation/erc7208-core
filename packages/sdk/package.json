@@ -1,0 +1,36 @@
+{
+  "name": "@nexera-foundation/erc7208-sdk",
+  "version": "0.0.2-dev",
+  "description": "TypeScript SDK for ERC-7208 contracts",
+  "license": "MIT",
+  "private": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nexera-Foundation/erc7208-core.git",
+    "directory": "packages/sdk"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "yarn copy-abis && tsc -p tsconfig.build.json",
+    "prepublishOnly": "yarn build",
+    "copy-abis": "rm -rf src/artifacts && mkdir -p src/artifacts && find ../contracts/artifacts/contracts -type f \\( -name '*.json' -o -name '*.d.ts' \\) ! -name '*.dbg.json' -exec cp {} src/artifacts/ \\;",
+    "clean": "rm -rf dist src/artifacts",
+    "lint": "prettier --check \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "ethers": "^6.13.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "prettier": "^3.6.2",
+    "typescript": ">=4.5.0"
+  }
+}

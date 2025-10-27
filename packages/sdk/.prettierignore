@@ -1,0 +1,11 @@
+# Build output
+dist/
+
+# Generated files
+src/artifacts/
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log

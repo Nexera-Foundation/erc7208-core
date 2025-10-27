@@ -1,0 +1,23 @@
+# Build output
+/dist
+
+# Generated files
+/src/artifacts
+
+# Node modules
+/node_modules
+
+# Test output
+/test
+
+# IDE files
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment
+.env
