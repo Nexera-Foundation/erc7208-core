@@ -97,8 +97,7 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
             // Should be called by current Data Index or DataPoint Admin
             require(address(currentDataIndex) == _msgSender() || _isDataPointAdmin(dp, _msgSender()), InvalidCaller(dp, _msgSender()));
         }
-        _overrideDataIndexes[dp] = IDataIndex(newDataIndexImpl);
-        emit DataIndexImplementationSet(dp, newDataIndexImpl);
+        _setDataIndexImplementationInternal(dp, newDataIndexImpl);
     }
 
     /// @inheritdoc IBaseDataObject
@@ -151,4 +150,17 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
         if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
             revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
+
+    /**
+     * Set new DataIndex implemetation for a DataPoint WITHOUT VERIFICATIONS
+     * Allows extending DataObject to change DataIndex for a DataPoint using alternative ways
+     * of  DataPoint admin permissions verification
+     * @param dp DataPoint to change
+     * @param newDataIndexImpl new DataIndex address
+     */
+    function _setDataIndexImplementationInternal(DataPoint dp, address newDataIndexImpl) internal {
+        _overrideDataIndexes[dp] = IDataIndex(newDataIndexImpl);
+        emit DataIndexImplementationSet(dp, newDataIndexImpl);
+    }    
+
 }
