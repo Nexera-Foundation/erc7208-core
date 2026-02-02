@@ -113,8 +113,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
             // Should be called by current Data Index or DataPoint Admin
             require(address(currentDataIndex) == _msgSender() || _isDataPointAdmin(dp, _msgSender()), InvalidCaller(dp, _msgSender()));
         }
-        $.overrideDataIndexes[dp] = IDataIndex(newDataIndex);
-        emit DataIndexImplementationSet(dp, newDataIndex);
+        _setDataIndexImplementationInternal(dp, newDataIndex);
     }
 
     /**
@@ -173,4 +172,19 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
             revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
+
+
+    /**
+     * Set new DataIndex implemetation for a DataPoint WITHOUT VERIFICATIONS
+     * Allows extending DataObject to change DataIndex for a DataPoint using alternative ways
+     * of  DataPoint admin permissions verification
+     * @param dp DataPoint to change
+     * @param newDataIndexImpl new DataIndex address
+     */
+    function _setDataIndexImplementationInternal(DataPoint dp, address newDataIndexImpl) internal {
+        BaseDataObjectStorage storage $ = _getBaseDataObjectStorage();
+        $.overrideDataIndexes[dp] = IDataIndex(newDataIndexImpl);
+        emit DataIndexImplementationSet(dp, newDataIndexImpl);
+    }    
+
 }
