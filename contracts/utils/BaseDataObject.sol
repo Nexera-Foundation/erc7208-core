@@ -15,6 +15,17 @@ import {ChainidTools} from "./ChainidTools.sol";
  * @notice Base contract for DataObject implementations
  */
 abstract contract BaseDataObject is IBaseDataObject, AccessControl {
+    /**
+     * @dev Error thrown when a read operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchRead()` to handle the operation
+     */
+    error UnsupportedReadOperation(bytes4 operation);
+    /**
+     * @dev Error thrown when a write operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchWrite()` to handle the operation
+     */
+    error UnsupportedWriteOperation(bytes4 operation);
+
     /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
     IDataIndex private _defaultDataIndex;
 
@@ -37,25 +48,33 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
 
     /**
      * Executes requested read operation
+     * Extending DataObject SHOULD override this function and call `super._dispatchRead()`
+     * for operations it does not handle.
      * @dev It's recommended to NOT include actual function implementation to this function directly.
      * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual returns (bytes memory);
+    function _dispatchRead(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal view virtual returns (bytes memory) {
+        revert UnsupportedReadOperation(operation);
+    }
 
     /**
      * Executes requested write operation
+     * Extending DataObject SHOULD override this function and call `super._dispatchWrite()`
+     * for operations it does not handle.
      * @dev It's recommended to NOT include actual function implementation to this function directly.
      * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual returns (bytes memory);
+    function _dispatchWrite(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal virtual returns (bytes memory) {        
+        revert UnsupportedWriteOperation(operation);
+    }
 
     /// @inheritdoc IBaseDataObject
     function defaultDataIndex() public view returns (address) {
