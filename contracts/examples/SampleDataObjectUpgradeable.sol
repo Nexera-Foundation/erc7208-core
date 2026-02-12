@@ -31,8 +31,6 @@ interface ISampleDataObjectOperations {
 }
 
 contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
-    error UnknownOperation(bytes4 operation);
-
     /**
      * Storage structure for data of DataPoint
      * @dev Here we do not verify if storage was initialized.
@@ -73,11 +71,11 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
     function __SampleDataObject_init_unchained() internal onlyInitializing {}
 
     /// @inheritdoc BaseDataObjectUpgradeable
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata /*data*/) internal view override returns (bytes memory) {
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view override returns (bytes memory) {
         if (operation == ISampleDataObjectOperations.value.selector) {
             return abi.encode(_value(dp));
         }
-        revert UnknownOperation(operation);
+        super._dispatchRead(dp, operation, data);
     }
 
     /// @inheritdoc BaseDataObjectUpgradeable
@@ -93,7 +91,7 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
             (uint256 expectedValue, uint256 newValue) = abi.decode(data, (uint256, uint256));
             return abi.encode(_compareAndSet(dp, expectedValue, newValue));
         }
-        revert UnknownOperation(operation);
+        super._dispatchWrite(dp, operation, data);
     }
 
     function _value(DataPoint dp) private view returns (uint256) {
