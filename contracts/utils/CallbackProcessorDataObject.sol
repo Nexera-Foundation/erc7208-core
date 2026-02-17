@@ -63,9 +63,11 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         if (operation == ICallbackProcessorOperations.registerCallback.selector) {
             (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
             _registerCallback(dp, handler, mask, context);
+            return "";
         } else if(operation == ICallbackProcessorOperations.unregisterCallback.selector) {
             (address handler) = abi.decode(data, (address));
             _unregisterCallback(dp, handler);            
+            return "";
         }
         super._dispatchWrite(dp, operation, data);
     }    
