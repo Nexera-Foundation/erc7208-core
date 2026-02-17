@@ -59,7 +59,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
 
     mapping(DataPoint => CallbackProcessorDpData) private _callbackProcessorData;
     
-    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal override returns (bytes memory) {        
+    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {        
         if (operation == ICallbackProcessorOperations.registerCallback.selector) {
             (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
             _registerCallback(dp, handler, mask, context);

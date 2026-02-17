@@ -1,6 +1,6 @@
 {
     "name": "@nexera-foundation/erc7208-core",
-    "version": "0.0.3-dev",
+    "version": "0.0.4-dev-draft-02",
     "description": "ERC-7208 Interfaces & base contracts",
     "repository": "https://github.com/Nexera-Foundation/erc7208-core.git",
     "author": "Nexera <contact@nexeraprotocol.com>",
