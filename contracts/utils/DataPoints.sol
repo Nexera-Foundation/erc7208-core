@@ -6,6 +6,9 @@ import {ChainidTools} from "./ChainidTools.sol";
 /// @dev DataPoint is a 32 bytes structure which contains information about data point
 type DataPoint is bytes32;
 
+using DataPoints for DataPoint global;
+using {equals as ==} for DataPoint global;
+
 /**
  * DataPoint structure:
  * 0xPPPPVVRRIIIIIIIIHHHHHHHHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -78,4 +81,8 @@ library DataPoints {
         chainid = uint32(dpu >> CHAINID_BIT_OFFSET);
         id = uint32(dpu >> ID_BIT_OFFSET);
     }
+}
+
+function equals(DataPoint dp1, DataPoint dp2) pure returns (bool) {
+    return DataPoint.unwrap(dp1) == DataPoint.unwrap(dp2);
 }
