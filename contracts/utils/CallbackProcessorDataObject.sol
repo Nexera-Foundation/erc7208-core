@@ -69,7 +69,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
             _unregisterCallback(dp, handler);            
             return "";
         }
-        super._dispatchWrite(dp, operation, data);
+        return super._dispatchWrite(dp, operation, data);
     }    
 
     function _processCallbacks(DataPoint dp, uint256 task, bytes memory taskData) internal nonReentrant {
