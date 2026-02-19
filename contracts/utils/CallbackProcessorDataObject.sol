@@ -81,7 +81,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
             uint256 mask = cpData.properties[handler].mask;
             if((mask & task) != 0) {
                 bytes memory context = cpData.properties[handler].context;
-                //TODO Handle errors?
+                //TODO Handle errors? Add options to fail on error or skip error? Add another function instead of an option to this one?
                 IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context);
             }
         }
