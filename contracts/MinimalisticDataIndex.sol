@@ -90,8 +90,8 @@ contract MinimalisticDataIndex is IDataIndex, ERC165 {
     }
 
     ///@inheritdoc IDataIndex
-    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external onlyApprovedDM(dp) returns (bytes memory) {
-        return dobj.write(dp, operation, data);
+    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external payable onlyApprovedDM(dp) returns (bytes memory) {
+        return dobj.write{value: msg.value}(dp, operation, data);
     }
 
     /**
