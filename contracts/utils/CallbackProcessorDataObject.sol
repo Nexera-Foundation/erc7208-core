@@ -7,33 +7,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {DataPoint} from "./DataPoints.sol";
 import {BaseDataObject} from "./BaseDataObject.sol";
-
-interface IDataObjectCallbackHandler is IERC165 {
-    /**
-     * Called by DataObject to handle extra processing logic after write calls
-     * @param dp DataPoint to work with
-     * @param taskData Handler-specific data of current call
-     * @param context Optional context provided during Handler registration
-     * @dev If handler needs to handle multiple tasks, the one requested can be encoded within `taskData`
-     */
-    function handleDataObjectCallback(DataPoint dp, bytes calldata taskData, bytes calldata context) external;
-}
-
-interface ICallbackProcessorOperations {
-    /**
-     * Registers callback handler within DataObject
-     * @param handler contract to call, must implement IDataObjectCallbackHandler
-     * @param mask allows to only call this handler for specific tasks. Use `bytes32(type(uint256).max)` (0xFF...FF) for all tasks
-     * @param context context to provide with the call
-     */
-    function registerCallback(address handler, uint256 mask, bytes memory context) external;
-
-    /**
-     * Unregisters callback handler
-     * @param handler handler ro remove
-     */
-    function unregisterCallback(address handler) external;
-}
+import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
+import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 
 abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard {
     using EnumerableSet for EnumerableSet.AddressSet;
