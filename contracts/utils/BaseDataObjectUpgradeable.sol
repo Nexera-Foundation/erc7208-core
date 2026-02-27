@@ -34,8 +34,8 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         mapping(DataPoint => IDataIndex) overrideDataIndexes;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant BaseDataObjectStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+    // keccak256(abi.encode(uint256(keccak256("nexera-foundation.erc7208-core.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant BaseDataObjectStorageLocation = 0xa443a0a91e31176e5e439a7da326d436b956bf64f73af115662d0397c1357b00;
 
     function _getBaseDataObjectStorage() private pure returns (BaseDataObjectStorage storage $) {
         assembly {
