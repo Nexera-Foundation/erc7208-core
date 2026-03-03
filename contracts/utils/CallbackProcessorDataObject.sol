@@ -24,6 +24,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
 
     event CallbackHandlerRegistered(address handler, uint256 mask);
     event CallbackHandlerUnregistered(address handler);
+    event CallbacksProcessed(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers);
 
     struct CallbackHandlerProperties {
         uint256 mask;
@@ -64,7 +65,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
                 _onCallbackHandlerFailure(dp, task, handler, reason);
             }
         }
-        _afterProcessCallbacks(dp, task, failedHandlersCount);
+        _afterProcessCallbacks(dp, task, handlers.length - failedHandlersCount, failedHandlersCount);
     }
 
     /**
@@ -79,14 +80,16 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
 
     /**
      * Extension point to allow validate requirements after processing task via handlers
-     * param dp DataPoint to work with
-     * param task task to handle
-     * param taskData task data
-     * param handlers list of handlers which will be called to process the task (filtered)
-     * param failedHandlersCount count of failed handler calls
-     * @dev Can be overriden if extra processing is needed
+     * @param dp DataPoint to work with
+     * @param task task to handle
+     * @param successfulHandlers count of failed handler calls
+     * @param failedHandlers count of failed handler calls
+     * @dev Can be overriden if extra processing is needed.
+     * Overriding contract should emit the CallbacksProcessed event itslef or call `super._afterProcessCallbacks()`
      */
-    function _afterProcessCallbacks(DataPoint /*dp*/, uint256 /*task*/, uint256 /*failedHandlersCount*/) internal virtual {}
+    function _afterProcessCallbacks(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers) internal virtual {
+        emit CallbacksProcessed(dp, task, successfulHandlers, failedHandlers);
+    }
 
     /**
      * Extension point to allow customize error processing
