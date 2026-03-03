@@ -3,13 +3,13 @@ pragma solidity ^0.8.28;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {DataPoint} from "./DataPoints.sol";
 import {BaseDataObjectUpgradeable} from "./BaseDataObjectUpgradeable.sol";
 import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 
-abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgradeable, ReentrancyGuardUpgradeable {
+abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgradeable, ReentrancyGuardTransient {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 constant public ALL_OPERATIONS = type(uint256).max;
@@ -47,7 +47,6 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
 
     function __CallbackProcessorDataObject_init() internal onlyInitializing {
         __BaseDataObject_init();
-        __ReentrancyGuard_init();
         __CallbackProcessorDataObject_init_unchained();
     }
 

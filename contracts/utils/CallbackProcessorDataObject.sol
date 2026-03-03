@@ -3,14 +3,14 @@ pragma solidity ^0.8.28;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {DataPoint} from "./DataPoints.sol";
 import {BaseDataObject} from "./BaseDataObject.sol";
 import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 
-abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard {
+abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuardTransient {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 constant public ALL_OPERATIONS = type(uint256).max;    
@@ -62,6 +62,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         }
 
     }
+
 
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
         require(IERC165(handler).supportsInterface(type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
