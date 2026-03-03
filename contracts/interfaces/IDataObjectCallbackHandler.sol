@@ -11,6 +11,7 @@ interface IDataObjectCallbackHandler is IERC165 {
      * @param taskData Handler-specific data of current call
      * @param context Optional context provided during Handler registration
      * @dev If handler needs to handle multiple tasks, the one requested can be encoded within `taskData`
+     * @return callback result which may be processed by the DataObject
      */
-    function handleDataObjectCallback(DataPoint dp, bytes calldata taskData, bytes calldata context) external;
+    function handleDataObjectCallback(DataPoint dp, bytes calldata taskData, bytes calldata context) external returns(bytes memory);
 }

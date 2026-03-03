@@ -59,7 +59,8 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         for(uint256 i; i < handlers.length; i++) {
             address handler = handlers[i];
             bytes memory context = cpData.properties[handler].context;
-            try IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context) {
+            try IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context) returns(bytes memory result){
+                _onCallbackHandlerSuccess(dp, task, handler, result);
             } catch(bytes memory reason)  {
                 failedHandlersCount++;
                 _onCallbackHandlerFailure(dp, task, handler, reason);
@@ -89,6 +90,16 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
      */
     function _afterProcessCallbacks(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers) internal virtual {
         emit CallbacksProcessed(dp, task, successfulHandlers, failedHandlers);
+    }
+
+    /**
+     * Extension point to allow customize callback result processing
+     * param dp DataPoint to work with
+     * param task task to handle
+     * param handler address of failed handler
+     * param result data returned by the callback
+     */
+    function _onCallbackHandlerSuccess(DataPoint /*dp*/, uint256 /*task*/, address /*handler*/, bytes memory /*result*/) internal virtual {
     }
 
     /**
