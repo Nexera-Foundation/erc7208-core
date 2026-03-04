@@ -4,12 +4,14 @@ pragma solidity ^0.8.28;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {DataPoint} from "./DataPoints.sol";
 import {BaseDataObjectUpgradeable} from "./BaseDataObjectUpgradeable.sol";
 import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 
 abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgradeable, ReentrancyGuardTransient {
+    using Arrays for address[];
     using EnumerableSet for EnumerableSet.AddressSet;
 
     uint256 constant public ALL_OPERATIONS = type(uint256).max;
@@ -17,9 +19,11 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     error CallbackHandlerDoesNotSupportCallbackInterface(address handler);
     error CallbackHandlerAlreadyRegistered(address handler);
     error CallbackHandlerNotRegistered(address handler);
+    error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
 
     event CallbackHandlerRegistered(address handler, uint256 mask);
     event CallbackHandlerUnregistered(address handler);
+    event CallbacksProcessed(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers);
 
     struct CallbackHandlerProperties {
         uint256 mask;
@@ -68,17 +72,87 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     function _processCallbacks(DataPoint dp, uint256 task, bytes memory taskData) internal nonReentrant {
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];
-        address[] memory handlers = cpData.handlers.values();
+        address[] memory handlers = _filterCallbackHandlers(cpData, task);
+        _beforeProcessCallbacks(dp, task, taskData, handlers);
+        uint256 failedHandlersCount;
         for (uint256 i; i < handlers.length; i++) {
             address handler = handlers[i];
-            // here we first read mask, and only if needed read context
-            uint256 mask = cpData.properties[handler].mask;
-            if ((mask & task) != 0) {
-                bytes memory context = cpData.properties[handler].context;
-                //TODO Handle errors? Add options to fail on error or skip error? Add another function instead of an option to this one?
-                IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context);
+            bytes memory context = cpData.properties[handler].context;
+            try IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context) returns (bytes memory result) {
+                _onCallbackHandlerSuccess(dp, task, handler, result);
+            } catch (bytes memory reason) {
+                failedHandlersCount++;
+                _onCallbackHandlerFailure(dp, task, handler, reason);
             }
         }
+        _afterProcessCallbacks(dp, task, handlers.length - failedHandlersCount, failedHandlersCount);
+    }
+
+    /**
+     * Extension point to allow validate requirements before processing task via handlers
+     * param dp DataPoint to work with
+     * param task task to handle
+     * param taskData task data
+     * param handlers list of handlers which will be called to process the task (filtered)
+     * @dev Can be overridden to do required verification
+     */
+    function _beforeProcessCallbacks(DataPoint /*dp*/, uint256 /*task*/, bytes memory /*taskData*/, address[] memory /*handlers*/) internal virtual {}
+
+    /**
+     * Extension point to allow validate requirements after processing task via handlers
+     * @param dp DataPoint to work with
+     * @param task task to handle
+     * @param successfulHandlers count of successful handler calls
+     * @param failedHandlers count of failed handler calls
+     * @dev Can be overridden if extra processing is needed.
+     * Overriding contract should emit the CallbacksProcessed event itself or call `super._afterProcessCallbacks()`
+     */
+    function _afterProcessCallbacks(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers) internal virtual {
+        emit CallbacksProcessed(dp, task, successfulHandlers, failedHandlers);
+    }
+
+    /**
+     * Extension point to allow customize callback result processing
+     * param dp DataPoint to work with
+     * param task task to handle
+     * param handler address of handler
+     * param result data returned by the callback
+     */
+    function _onCallbackHandlerSuccess(DataPoint /*dp*/, uint256 /*task*/, address /*handler*/, bytes memory /*result*/) internal virtual {}
+
+    /**
+     * Extension point to allow customize error processing
+     * param dp DataPoint to work with
+     * param task task to handle
+     * @param handler address of failed handler
+     * @param reason revert reason
+     */
+    function _onCallbackHandlerFailure(DataPoint /*dp*/, uint256 /*task*/, address handler, bytes memory reason) internal virtual {
+        if (reason.length == 0) {
+            revert CallbackHandlerFailedToProcessCallbackWithoutReason(handler);
+        } else {
+            // Revert with same reason
+            assembly ("memory-safe") {
+                revert(add(reason, 0x20), mload(reason))
+            }
+        }
+    }
+
+    function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns (address[] memory) {
+        // Filter the handlers array, moving all handlers of requested task to the beginning of the array
+        address[] memory handlers = cpData.handlers.values();
+        uint256 nextFreeIndex;
+        for (uint256 i; i < handlers.length; i++) {
+            address handler = handlers[i];
+            uint256 mask = cpData.properties[handler].mask;
+            if ((mask & task) != 0) {
+                if (nextFreeIndex < i) {
+                    handlers[nextFreeIndex] = handlers[i];
+                }
+                nextFreeIndex++;
+            }
+        }
+        return handlers.slice(0, nextFreeIndex);
     }
 
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
