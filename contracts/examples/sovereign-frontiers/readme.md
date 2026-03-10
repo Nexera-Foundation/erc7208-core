@@ -20,10 +20,9 @@ Each territory is identified by a unique `bytes32 DataPoint`. The state stored w
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `militaryPower` | `uint256` | Mobile units available for attack or reinforcement. |
+| `militaryPower` | `uint256` | Mobile units available for attack or reinforcement. When the army is sent elsewhere, the WarEngine sets this to zero in the registry; it can still increase from energy allocation. |
 | `garrison` | `uint256` | Static defense units (multiplied by a global `DEFENCE_MULTIPLIER`). |
 | `energyYield` | `uint256` | Base energy production per epoch. |
-| `deployment` | `bytes32` | Target `DataPoint` where the army is currently stationed (`0x0` if in flight). |
 | `lastUpdate` | `uint256` | The block number of the last resource settlement. |
 | `allocation` | `(uint256, uint256, uint256)` | Tuple `(Offense, Defense, Economy)` — percentage of energy distributed to each direction. Each value is in 1e18 scale (1e18 = 100%). Sum must equal 1e18. |
 
@@ -36,7 +35,7 @@ Each territory is identified by a unique `bytes32 DataPoint`. The state stored w
 To optimize gas costs, energy is not accumulated every block. Instead, it is calculated only when a DataPoint is interacted with.
 
 * **Formula:** `AccumulatedEnergy = energyYield * (currentBlock - lastUpdate)`.
-* Upon any action (attacking, moving, or manual settlement), the `WarEngine` calculates this energy and distributes it according to the territory's `allocation` tuple (Offense, Defense, Economy).
+* Upon any action (attacking, responding to a support request, or manual settlement), the `WarEngine` calculates this energy and distributes it according to the territory's `allocation` tuple (Offense, Defense, Economy).
 
 ### 2. Energy Allocation (Offense / Defense / Economy)
 
@@ -53,7 +52,11 @@ Values are in 1e18 scale (1e18 = 100%). The three components must sum to 1e18.
 By using the `CallbackProcessor` territories can react to external events within the same transaction:
 
 * **Task `0x1` (Under Attack):** Triggered when an enemy targets the DataPoint.
-* **Task `0x2` (Request for Aid):** Triggered when a neighboring or allied DataPoint initiates a call for reinforcements.
+* **Task `0x2` (Request for Aid):** Triggered when an allied DataPoint calls for reinforcements. The territory may respond by sending support (subject to its diplomacy thresholds)—no manual "send army to defend" action; defence is purely reactive.
+
+### 4. Army sent to another location
+
+There is no `deployment` field. When a territory sends its army (to attack or to support an ally), the **WarEngine** decreases that territory's `militaryPower` to zero in the registry and tracks the army in transit internally. The source territory's `militaryPower` can still increase from energy allocation while the army is away.
 
 ---
 
@@ -67,12 +70,26 @@ By using the `CallbackProcessor` territories can react to external events within
 ### **WarEngine (GameMaster DM)**
 
 * Defines global constants: `DEFENCE_MULTIPLIER`, `UPGRADE_COSTS`, `TRAVEL_TIME` and `EPOCH_TIME`.
+* When sending an army to another location (attack or support), decreases the source territory's `militaryPower` to zero in the registry and tracks the army in transit; the source can still accrue `militaryPower` from energy allocation.
 * Executes combat logic: calculating losses based on `militaryPower` vs. `garrison * DEF_COEFF`.
 * Updates the `SovereignRegistry` and triggers the appropriate callback tasks.
-* Triggers tasks initiated by other players
+* Triggers tasks initiated by other players.
 
 ### **CommandCenter (Player DM)**
 
-* Entry point for users to `attack()`, `support()`, or `rebase()`.
-* Handles setting the allocation tuple: settling pending energy before changing allocation.
+* Entry point for users to issue high-level commands (e.g. `attack()`). Defence is not manual: armies are sent to allied territories only in reaction to support requests (Task `0x2`), according to diplomacy settings.
+* Manages **diplomacy settings** for a territory:
+  * Stores a preferred allied `DataPoint` it can automatically call for support when under attack.
+  * Stores a mapping from allied `DataPoint` → **attack force threshold** that defines when it is willing to send support in response to a Request for Aid.
+
+For example, if the diplomacy mapping is:
+
+* `A => 1000`
+* `B => 5000`
+
+Then:
+
+* If `A` is attacked with force `500`, it will send support (500 ≤ 1000).
+* If `A` is attacked with force `2000`, it will not send support (2000 > 1000).
+* If `B` is attacked with force `2000`, it will send support (2000 ≤ 5000).
 
