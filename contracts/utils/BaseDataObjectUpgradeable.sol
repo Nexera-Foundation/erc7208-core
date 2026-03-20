@@ -26,7 +26,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
      */
     error UnsupportedWriteOperation(bytes4 operation);
         
-    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.BaseDataObject
+    /// @custom:storage-location erc7201:nexera-foundation.erc7208-core.storage.BaseDataObject
     struct BaseDataObjectStorage {
         /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
         IDataIndex defaultDataIndex;

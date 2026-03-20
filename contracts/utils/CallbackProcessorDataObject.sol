@@ -21,8 +21,8 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     error CallbackHandlerNotRegistered(address handler);
     error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
 
-    event CallbackHandlerRegistered(address handler, uint256 mask);
-    event CallbackHandlerUnregistered(address handler);
+    event CallbackHandlerRegistered(DataPoint dp, address handler, uint256 mask);
+    event CallbackHandlerUnregistered(DataPoint dp, address handler);
     event CallbacksProcessed(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers);
 
     struct CallbackHandlerProperties {
@@ -128,7 +128,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
             mask: mask,
             context: context
         });
-        emit CallbackHandlerRegistered(handler, mask);
+        emit CallbackHandlerRegistered(dp, handler, mask);
     }
 
     function _unregisterCallback(DataPoint dp, address handler) private {
@@ -136,7 +136,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         bool removed = cpData.handlers.remove(handler);
         require(removed, CallbackHandlerNotRegistered(handler));
         delete cpData.properties[handler];
-        emit CallbackHandlerUnregistered(handler);
+        emit CallbackHandlerUnregistered(dp, handler);
     }
 
     function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns(address[] memory) {

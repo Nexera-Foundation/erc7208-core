@@ -75,7 +75,7 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
         if (operation == ISampleDataObjectOperations.value.selector) {
             return abi.encode(_value(dp));
         }
-        super._dispatchRead(dp, operation, data);
+        return super._dispatchRead(dp, operation, data);
     }
 
     /// @inheritdoc BaseDataObjectUpgradeable
@@ -91,7 +91,7 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
             (uint256 expectedValue, uint256 newValue) = abi.decode(data, (uint256, uint256));
             return abi.encode(_compareAndSet(dp, expectedValue, newValue));
         }
-        super._dispatchWrite(dp, operation, data);
+        return super._dispatchWrite(dp, operation, data);
     }
 
     function _value(DataPoint dp) private view returns (uint256) {
