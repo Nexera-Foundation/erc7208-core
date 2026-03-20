@@ -3,6 +3,9 @@ pragma solidity ^0.8.28;
 
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+// OZ does not provide an upgradeable variant of ReentrancyGuard because both ReentrancyGuard
+// and ReentrancyGuardTransient use ERC-7201 derived slots instead of sequential storage, and
+// are marked @custom:stateless — no initializer or storage layout management is needed.
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
 import {DataPoint} from "./DataPoints.sol";
@@ -33,7 +36,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     uint256 constant public ALL_OPERATIONS = type(uint256).max;
 
     error CallbackHandlerDoesNotSupportCallbackInterface(address handler);
-    error CallbackHandlerAlreadyRegistered(address handler);
+    event CallbackHandlerUpdated(DataPoint dp, address handler, uint256 mask);
     error CallbackHandlerNotRegistered(address handler);
     error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
 
@@ -72,6 +75,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
 
     function __CallbackProcessorDataObject_init_unchained() internal onlyInitializing {}
 
+    /// @inheritdoc BaseDataObjectUpgradeable
     function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {
         if (operation == ICallbackProcessorOperations.registerCallback.selector) {
             (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
@@ -85,6 +89,12 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
         return super._dispatchWrite(dp, operation, data);
     }
 
+    /**
+     * Invokes all registered callback handlers whose mask matches the given task.
+     * @param dp DataPoint to process callbacks for
+     * @param task bitmask identifying the task that triggered the callbacks
+     * @param taskData ABI-encoded data to pass to each handler
+     */
     function _processCallbacks(DataPoint dp, uint256 task, bytes memory taskData) internal nonReentrant {
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];
@@ -105,7 +115,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     }
 
     /**
-     * Extension point to allow validate requirements before processing task via handlers
+     * Extension point to validate requirements before processing task via handlers
      * param dp DataPoint to work with
      * param task task to handle
      * param taskData task data
@@ -115,7 +125,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     function _beforeProcessCallbacks(DataPoint /*dp*/, uint256 /*task*/, bytes memory /*taskData*/, address[] memory /*handlers*/) internal virtual {}
 
     /**
-     * Extension point to allow validate requirements after processing task via handlers
+     * Extension point to validate requirements after processing task via handlers
      * @param dp DataPoint to work with
      * @param task task to handle
      * @param successfulHandlers count of successful handler calls
@@ -128,7 +138,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     }
 
     /**
-     * Extension point to allow customize callback result processing
+     * Extension point to customize callback result processing
      * param dp DataPoint to work with
      * param task task to handle
      * param handler address of handler
@@ -157,8 +167,12 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
         }
     }
 
+    /**
+     * Returns only the handlers whose mask matches the given task.
+     * @param cpData storage reference to the callback data for a DataPoint
+     * @param task bitmask to filter handlers against
+     */
     function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns (address[] memory) {
-        // Filter the handlers array, moving all handlers of requested task to the beginning of the array
         address[] memory handlers = cpData.handlers.values();
         uint256 nextFreeIndex;
         for (uint256 i; i < handlers.length; i++) {
@@ -174,19 +188,31 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
         return handlers.slice(0, nextFreeIndex);
     }
 
+    /**
+     * Registers or updates a callback handler for a DataPoint.
+     * If the handler is already registered, its mask and context are updated.
+     */
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
         require(ERC165Checker.supportsInterface(handler, type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];
         bool added = cpData.handlers.add(handler);
-        require(added, CallbackHandlerAlreadyRegistered(handler));
         cpData.properties[handler] = CallbackHandlerProperties({
             mask: mask,
             context: context
         });
-        emit CallbackHandlerRegistered(dp, handler, mask);
+        if (added) {
+            emit CallbackHandlerRegistered(dp, handler, mask);
+        } else {
+            emit CallbackHandlerUpdated(dp, handler, mask);
+        }
     }
 
+    /**
+     * Removes a callback handler for a DataPoint.
+     * @param dp DataPoint to unregister the handler from
+     * @param handler address of the handler to remove
+     */
     function _unregisterCallback(DataPoint dp, address handler) private {
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];

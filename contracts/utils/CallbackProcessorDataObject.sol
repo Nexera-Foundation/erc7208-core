@@ -53,7 +53,8 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
 
     mapping(DataPoint => CallbackProcessorDpData) private _callbackProcessorData;
     
-    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {        
+    /// @inheritdoc BaseDataObject
+    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {
         if (operation == ICallbackProcessorOperations.registerCallback.selector) {
             (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
             _registerCallback(dp, handler, mask, context);
@@ -66,6 +67,12 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         return super._dispatchWrite(dp, operation, data);
     }    
 
+    /**
+     * Invokes all registered callback handlers whose mask matches the given task.
+     * @param dp DataPoint to process callbacks for
+     * @param task bitmask identifying the task that triggered the callbacks
+     * @param taskData ABI-encoded data to pass to each handler
+     */
     function _processCallbacks(DataPoint dp, uint256 task, bytes memory taskData) internal nonReentrant {
         CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
         address[] memory handlers = _filterCallbackHandlers(cpData, task);
@@ -85,33 +92,33 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     }
 
     /**
-     * Extension point to allow validate requirements befrore processing task via handlers
+     * Extension point to validate requirements before processing task via handlers
      * param dp DataPoint to work with
      * param task task to handle
      * param taskData task data
      * param handlers list of handlers which will be called to process the task (filtered)
-     * @dev Can be overriden to do required verification
+     * @dev Can be overridden to do required verification
      */
     function _beforeProcessCallbacks(DataPoint /*dp*/, uint256 /*task*/, bytes memory /*taskData*/, address[] memory /*handlers*/) internal virtual {}
 
     /**
-     * Extension point to allow validate requirements after processing task via handlers
+     * Extension point to validate requirements after processing task via handlers
      * @param dp DataPoint to work with
      * @param task task to handle
-     * @param successfulHandlers count of failed handler calls
+     * @param successfulHandlers count of successful handler calls
      * @param failedHandlers count of failed handler calls
-     * @dev Can be overriden if extra processing is needed.
-     * Overriding contract should emit the CallbacksProcessed event itslef or call `super._afterProcessCallbacks()`
+     * @dev Can be overridden if extra processing is needed.
+     * Overriding contract should emit the CallbacksProcessed event itself or call `super._afterProcessCallbacks()`
      */
     function _afterProcessCallbacks(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers) internal virtual {
         emit CallbacksProcessed(dp, task, successfulHandlers, failedHandlers);
     }
 
     /**
-     * Extension point to allow customize callback result processing
+     * Extension point to customize callback result processing
      * param dp DataPoint to work with
      * param task task to handle
-     * param handler address of failed handler
+     * param handler address of the handler
      * param result data returned by the callback
      */
     function _onCallbackHandlerSuccess(DataPoint /*dp*/, uint256 /*task*/, address /*handler*/, bytes memory /*result*/) internal virtual {

@@ -171,9 +171,9 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
     }
 
     /**
-     * Set new DataIndex implemetation for a DataPoint WITHOUT VERIFICATIONS
+     * Set new DataIndex implementation for a DataPoint WITHOUT VERIFICATIONS
      * Allows extending DataObject to change DataIndex for a DataPoint using alternative ways
-     * of  DataPoint admin permissions verification
+     * of DataPoint admin permissions verification
      * @param dp DataPoint to change
      * @param newDataIndexImpl new DataIndex address
      */
