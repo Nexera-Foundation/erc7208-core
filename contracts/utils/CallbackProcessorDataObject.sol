@@ -33,7 +33,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     uint256 constant public ALL_OPERATIONS = type(uint256).max;    
 
     error CallbackHandlerDoesNotSupportCallbackInterface(address handler);
-    error CallbackHandlerAlreadyRegistered(address handler);
+    event CallbackHandlerUpdated(DataPoint dp, address handler, uint256 mask);
     error CallbackHandlerNotRegistered(address handler);
     error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
 
@@ -138,18 +138,30 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         }
     }
 
+    /**
+     * Registers or updates a callback handler for a DataPoint.
+     * If the handler is already registered, its mask and context are updated.
+     */
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
         require(ERC165Checker.supportsInterface(handler, type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
         CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
         bool added = cpData.handlers.add(handler);
-        require(added, CallbackHandlerAlreadyRegistered(handler));
         cpData.properties[handler] = CallbackHandlerProperties({
             mask: mask,
             context: context
         });
-        emit CallbackHandlerRegistered(dp, handler, mask);
+        if (added) {
+            emit CallbackHandlerRegistered(dp, handler, mask);
+        } else {
+            emit CallbackHandlerUpdated(dp, handler, mask);
+        }
     }
 
+    /**
+     * Removes a callback handler for a DataPoint.
+     * @param dp DataPoint to unregister the handler from
+     * @param handler address of the handler to remove
+     */
     function _unregisterCallback(DataPoint dp, address handler) private {
         CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
         bool removed = cpData.handlers.remove(handler);
@@ -158,8 +170,12 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         emit CallbackHandlerUnregistered(dp, handler);
     }
 
+    /**
+     * Returns only the handlers whose mask matches the given task.
+     * @param cpData storage reference to the callback data for a DataPoint
+     * @param task bitmask to filter handlers against
+     */
     function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns(address[] memory) {
-        // Here we are filtering the handlers array, moving all handlers of requested task to the begining of the array
         address[] memory handlers = cpData.handlers.values();
         uint256 nextFreeIndex; // This variable points to a slot available for next suitable handler
         for(uint256 i; i < handlers.length; i++) {
