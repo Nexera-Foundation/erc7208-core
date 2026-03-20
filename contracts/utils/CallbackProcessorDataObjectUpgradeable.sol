@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
@@ -175,7 +175,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     }
 
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
-        require(IERC165(handler).supportsInterface(type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
+        require(ERC165Checker.supportsInterface(handler, type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];
         bool added = cpData.handlers.add(handler);
