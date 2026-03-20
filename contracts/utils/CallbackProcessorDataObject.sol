@@ -10,6 +10,22 @@ import {BaseDataObject} from "./BaseDataObject.sol";
 import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 
+/**
+ * @title Callback Processor DataObject
+ * @notice Mixin for DataObjects that need to trigger external callback handlers after write operations.
+ * Handlers are registered per DataPoint with a bitmask filter, so each handler only receives
+ * callbacks for the tasks it is interested in. The extending contract calls `_processCallbacks()`
+ * from its `_dispatchWrite()` after performing the write logic.
+ *
+ * @dev Key extension points:
+ *  - `_beforeProcessCallbacks()` — validate preconditions before handler invocations
+ *  - `_afterProcessCallbacks()` — post-processing; receives success/failure counts
+ *  - `_onCallbackHandlerSuccess()` — per-handler success hook (e.g. collect results)
+ *  - `_onCallbackHandlerFailure()` — per-handler failure hook; **by default reverts on the
+ *    first handler failure**, propagating the handler's revert reason. Override this to
+ *    suppress the revert if partial failures should be tolerated — only then will
+ *    `_afterProcessCallbacks()` be reached with a non-zero `failedHandlers` count.
+ */
 abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuardTransient {
     using Arrays for address[];
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -102,11 +118,14 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     }
 
     /**
-     * Extension point to allow customize error processing
+     * Extension point to customize error processing
      * param dp DataPoint to work with
      * param task task to handle
      * @param handler address of failed handler
      * @param reason revert reason
+     * @dev Default implementation reverts on the first handler failure, re-raising the original
+     * revert reason. This means `_afterProcessCallbacks()` will never be called with a non-zero
+     * `failedHandlers` count unless this function is overridden to not revert.
      */
     function _onCallbackHandlerFailure(DataPoint /*dp*/, uint256 /*task*/, address handler, bytes memory reason) internal virtual {
         if (reason.length == 0) {  
