@@ -21,7 +21,6 @@
 
 # Private environment
 .env
-.npmrc
 
 # Yarn local stuff
 /.yarn
