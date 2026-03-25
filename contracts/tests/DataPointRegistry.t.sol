@@ -20,19 +20,19 @@ contract DataPointRegistryTest is Test {
 
     function test_Allocate() public {
         DataPoint dp = registry.allocate(address(this));
-        require(DataPoint.unwrap(dp) != bytes32(0), "Allocated DataPoint should not be empty");
+        assertTrue(DataPoint.unwrap(dp) != bytes32(0), "Allocated DataPoint should not be empty");
     }
 
     function test_AllocateMultipleDataPoints() public {
         DataPoint dp1 = registry.allocate(address(this));
         DataPoint dp2 = registry.allocate(address(this));
-        require(DataPoint.unwrap(dp1) != DataPoint.unwrap(dp2), "Two allocated DataPoints should be different");
+        assertTrue(DataPoint.unwrap(dp1) != DataPoint.unwrap(dp2), "Two allocated DataPoints should be different");
     }
 
     function test_AllocateForThirdParty() public {
         DataPoint dp = registry.allocate(ACCOUNT_1);
-        require(registry.isAdmin(dp, ACCOUNT_1), "Third party should be admin");
-        require(!registry.isAdmin(dp, address(this)), "Caller should NOT be admin of third party DP");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_1), "Third party should be admin");
+        assertFalse(registry.isAdmin(dp, address(this)), "Caller should NOT be admin of third party DP");
     }
 
     function test_AllocateRevertsOnZeroAddress() public {
@@ -56,10 +56,10 @@ contract DataPointRegistryTest is Test {
 
     function test_OwnerIsAdminByDefault() public {
         DataPoint dp1 = registry.allocate(address(this));
-        require(registry.isAdmin(dp1, address(this)), "Owner should be admin (caller)");
+        assertTrue(registry.isAdmin(dp1, address(this)), "Owner should be admin (caller)");
 
         DataPoint dp2 = registry.allocate(ACCOUNT_1);
-        require(registry.isAdmin(dp2, ACCOUNT_1), "Owner should be admin (third party)");
+        assertTrue(registry.isAdmin(dp2, ACCOUNT_1), "Owner should be admin (third party)");
     }
 
     // --- Ownership Transfer ---
@@ -67,18 +67,18 @@ contract DataPointRegistryTest is Test {
     function test_TransferOwnership() public {
         DataPoint dp = registry.allocate(address(this));
         registry.transferOwnership(dp, ACCOUNT_1);
-        require(registry.isAdmin(dp, ACCOUNT_1), "New owner should be admin");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_1), "New owner should be admin");
     }
 
     function test_TransferOwnershipCleansOldAdmins() public {
         DataPoint dp = registry.allocate(address(this));
         registry.grantAdminRole(dp, ACCOUNT_1);
-        require(registry.isAdmin(dp, ACCOUNT_1), "Granted admin should be admin");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_1), "Granted admin should be admin");
 
         registry.transferOwnership(dp, ACCOUNT_2);
-        require(!registry.isAdmin(dp, address(this)), "Old owner should not be admin after transfer");
-        require(!registry.isAdmin(dp, ACCOUNT_1), "Old admin should not be admin after transfer");
-        require(registry.isAdmin(dp, ACCOUNT_2), "New owner should be admin");
+        assertFalse(registry.isAdmin(dp, address(this)), "Old owner should not be admin after transfer");
+        assertFalse(registry.isAdmin(dp, ACCOUNT_1), "Old admin should not be admin after transfer");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_2), "New owner should be admin");
     }
 
     function test_TransferOwnershipRevertsForNonOwner() public {
@@ -100,8 +100,8 @@ contract DataPointRegistryTest is Test {
 
         vm.prank(ACCOUNT_1);
         registry.transferOwnership(dp, ACCOUNT_2);
-        require(registry.isAdmin(dp, ACCOUNT_2), "Final owner should be admin");
-        require(!registry.isAdmin(dp, ACCOUNT_1), "Previous owner should not be admin");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_2), "Final owner should be admin");
+        assertFalse(registry.isAdmin(dp, ACCOUNT_1), "Previous owner should not be admin");
     }
 
     // --- Admin Management ---
@@ -109,15 +109,15 @@ contract DataPointRegistryTest is Test {
     function test_GrantAdminRole() public {
         DataPoint dp = registry.allocate(address(this));
         bool added = registry.grantAdminRole(dp, ACCOUNT_1);
-        require(added, "Should return true for new admin");
-        require(registry.isAdmin(dp, ACCOUNT_1), "Granted account should be admin");
+        assertTrue(added, "Should return true for new admin");
+        assertTrue(registry.isAdmin(dp, ACCOUNT_1), "Granted account should be admin");
     }
 
     function test_GrantAdminRoleReturnsFalseIfAlreadyAdmin() public {
         DataPoint dp = registry.allocate(address(this));
         registry.grantAdminRole(dp, ACCOUNT_1);
         bool added = registry.grantAdminRole(dp, ACCOUNT_1);
-        require(!added, "Should return false for existing admin");
+        assertFalse(added, "Should return false for existing admin");
     }
 
     function test_GrantAdminRoleRevertsForNonOwner() public {
@@ -131,26 +131,26 @@ contract DataPointRegistryTest is Test {
         DataPoint dp = registry.allocate(address(this));
         registry.grantAdminRole(dp, ACCOUNT_1);
         bool removed = registry.revokeAdminRole(dp, ACCOUNT_1);
-        require(removed, "Should return true");
-        require(!registry.isAdmin(dp, ACCOUNT_1), "Revoked account should not be admin");
+        assertTrue(removed, "Should return true");
+        assertFalse(registry.isAdmin(dp, ACCOUNT_1), "Revoked account should not be admin");
     }
 
     function test_RevokeAdminRoleReturnsFalseIfNotAdmin() public {
         DataPoint dp = registry.allocate(address(this));
         bool removed = registry.revokeAdminRole(dp, ACCOUNT_1);
-        require(!removed, "Should return false for non-admin");
+        assertFalse(removed, "Should return false for non-admin");
     }
 
     function test_OwnerCanRevokeOwnAdminAndReGrant() public {
         DataPoint dp = registry.allocate(address(this));
         registry.revokeAdminRole(dp, address(this));
-        require(!registry.isAdmin(dp, address(this)), "Owner should not be admin after self-revoke");
+        assertFalse(registry.isAdmin(dp, address(this)), "Owner should not be admin after self-revoke");
         registry.grantAdminRole(dp, address(this));
-        require(registry.isAdmin(dp, address(this)), "Owner should be admin again");
+        assertTrue(registry.isAdmin(dp, address(this)), "Owner should be admin again");
     }
 
     function test_NonAdminIsNotAdmin() public {
         DataPoint dp = registry.allocate(address(this));
-        require(!registry.isAdmin(dp, ACCOUNT_1), "Random account should not be admin");
+        assertFalse(registry.isAdmin(dp, ACCOUNT_1), "Random account should not be admin");
     }
 }

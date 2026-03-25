@@ -33,7 +33,7 @@ contract BaseDataObjectTest is Test {
 
     function test_DispatchReadValue() public view {
         bytes memory result = dataObject.read(dp, ISampleDataObjectOperations.value.selector, "");
-        require(abi.decode(result, (uint256)) == 0, "Default value should be 0");
+        assertEq(abi.decode(result, (uint256)), 0, "Default value should be 0");
     }
 
     function test_DispatchReadUnsupportedOperation() public {
@@ -46,29 +46,29 @@ contract BaseDataObjectTest is Test {
     function test_DispatchWriteSet() public {
         dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.set.selector, abi.encode(uint256(100)));
         bytes memory result = dataObject.read(dp, ISampleDataObjectOperations.value.selector, "");
-        require(abi.decode(result, (uint256)) == 100, "Value should be 100");
+        assertEq(abi.decode(result, (uint256)), 100, "Value should be 100");
     }
 
     function test_DispatchWriteInc() public {
         dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.set.selector, abi.encode(uint256(5)));
         bytes memory result = dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.inc.selector, "");
-        require(abi.decode(result, (uint256)) == 6, "Inc should return 6");
+        assertEq(abi.decode(result, (uint256)), 6, "Inc should return 6");
     }
 
     function test_DispatchWriteDec() public {
         dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.set.selector, abi.encode(uint256(5)));
         bytes memory result = dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.dec.selector, "");
-        require(abi.decode(result, (uint256)) == 4, "Dec should return 4");
+        assertEq(abi.decode(result, (uint256)), 4, "Dec should return 4");
     }
 
     function test_DispatchWriteCompareAndSet() public {
         dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.set.selector, abi.encode(uint256(10)));
 
         bytes memory result = dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.compareAndSet.selector, abi.encode(uint256(10), uint256(20)));
-        require(abi.decode(result, (bool)) == true, "CAS should succeed");
+        assertTrue(abi.decode(result, (bool)), "CAS should succeed");
 
         result = dataIndex.write(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.compareAndSet.selector, abi.encode(uint256(10), uint256(30)));
-        require(abi.decode(result, (bool)) == false, "CAS should fail on mismatch");
+        assertFalse(abi.decode(result, (bool)), "CAS should fail on mismatch");
     }
 
     function test_DispatchWriteUnsupportedOperation() public {
@@ -97,13 +97,13 @@ contract BaseDataObjectTest is Test {
 
     function test_SetDefaultDataIndex() public {
         dataObject.setDefaultDataIndexImplementation(address(dataIndex));
-        require(dataObject.defaultDataIndex() == address(dataIndex), "Default DI should be set");
+        assertEq(dataObject.defaultDataIndex(), address(dataIndex), "Default DI should be set");
     }
 
     function test_SetDefaultDataIndexToZero() public {
         dataObject.setDefaultDataIndexImplementation(address(dataIndex));
         dataObject.setDefaultDataIndexImplementation(address(0));
-        require(dataObject.defaultDataIndex() == address(0), "Default DI should be zero");
+        assertEq(dataObject.defaultDataIndex(), address(0), "Default DI should be zero");
     }
 
     function test_SetDefaultDataIndexRevertsForNonAdmin() public {
@@ -113,17 +113,17 @@ contract BaseDataObjectTest is Test {
     }
 
     function test_OverrideDataIndex() public view {
-        require(dataObject.overrideDataIndex(dp) == address(dataIndex), "Override DI should be set for dp");
+        assertEq(dataObject.overrideDataIndex(dp), address(dataIndex), "Override DI should be set for dp");
     }
 
     function test_DataIndexReturnsOverrideWhenSet() public view {
-        require(dataObject.dataIndex(dp) == address(dataIndex), "dataIndex() should return override");
+        assertEq(dataObject.dataIndex(dp), address(dataIndex), "dataIndex() should return override");
     }
 
     function test_DataIndexFallsBackToDefault() public {
         DataPoint dp2 = registry.allocate(address(this));
         dataObject.setDefaultDataIndexImplementation(address(dataIndex));
-        require(dataObject.dataIndex(dp2) == address(dataIndex), "Should fall back to default DI");
+        assertEq(dataObject.dataIndex(dp2), address(dataIndex), "Should fall back to default DI");
     }
 
     function test_DataIndexRevertsWhenNoneSet() public {
@@ -135,7 +135,7 @@ contract BaseDataObjectTest is Test {
     function test_SetDataIndexByDPAdmin() public {
         DataPoint dp2 = registry.allocate(address(this));
         dataObject.setDataIndexImplementation(dp2, address(dataIndex));
-        require(dataObject.overrideDataIndex(dp2) == address(dataIndex), "DI should be set");
+        assertEq(dataObject.overrideDataIndex(dp2), address(dataIndex), "DI should be set");
     }
 
     function test_SetDataIndexRevertsForNonIDataIndexAddress() public {
@@ -155,7 +155,7 @@ contract BaseDataObjectTest is Test {
         MinimalisticDataIndex dataIndex2 = new MinimalisticDataIndex();
         vm.prank(address(dataIndex));
         dataObject.setDataIndexImplementation(dp, address(dataIndex2));
-        require(dataObject.overrideDataIndex(dp) == address(dataIndex2), "DI should be updated");
+        assertEq(dataObject.overrideDataIndex(dp), address(dataIndex2), "DI should be updated");
     }
 
     function test_IncBoundaryRevert() public {

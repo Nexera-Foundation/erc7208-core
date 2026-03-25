@@ -33,24 +33,24 @@ contract MinimalisticDataIndexTest is Test {
     // --- ERC165 ---
 
     function test_SupportsIDataIndex() public view {
-        require(dataIndex.supportsInterface(type(IDataIndex).interfaceId), "Should support IDataIndex");
+        assertTrue(dataIndex.supportsInterface(type(IDataIndex).interfaceId), "Should support IDataIndex");
     }
 
     function test_SupportsIERC165() public view {
-        require(dataIndex.supportsInterface(type(IERC165).interfaceId), "Should support IERC165");
+        assertTrue(dataIndex.supportsInterface(type(IERC165).interfaceId), "Should support IERC165");
     }
 
     // --- Approval ---
 
     function test_AllowDataManager() public {
         dataIndex.allowDataManager(dp, DATA_MANAGER, true);
-        require(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved");
+        assertTrue(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved");
     }
 
     function test_RevokeDataManager() public {
         dataIndex.allowDataManager(dp, DATA_MANAGER, true);
         dataIndex.allowDataManager(dp, DATA_MANAGER, false);
-        require(!dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should not be approved after revocation");
+        assertFalse(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should not be approved after revocation");
     }
 
     function test_AllowDataManagerRevertsForNonAdmin() public {
@@ -60,7 +60,7 @@ contract MinimalisticDataIndexTest is Test {
     }
 
     function test_UnapprovedDMIsNotApproved() public view {
-        require(!dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "Non-approved DM should not be approved");
+        assertFalse(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "Non-approved DM should not be approved");
     }
 
     // --- Admin revocation invalidates DM ---
@@ -71,10 +71,10 @@ contract MinimalisticDataIndexTest is Test {
 
         vm.prank(secondAdmin);
         dataIndex.allowDataManager(dp, DATA_MANAGER, true);
-        require(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved by second admin");
+        assertTrue(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved by second admin");
 
         registry.revokeAdminRole(dp, secondAdmin);
-        require(!dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should lose approval when approving admin is revoked");
+        assertFalse(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should lose approval when approving admin is revoked");
     }
 
     // --- Read (passthrough) ---
@@ -82,7 +82,7 @@ contract MinimalisticDataIndexTest is Test {
     function test_ReadPassthrough() public view {
         bytes memory result = dataIndex.read(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.value.selector, "");
         uint256 val = abi.decode(result, (uint256));
-        require(val == 0, "Default value should be 0");
+        assertEq(val, 0, "Default value should be 0");
     }
 
     // --- Write (gated) ---
@@ -95,7 +95,7 @@ contract MinimalisticDataIndexTest is Test {
 
         bytes memory result = dataIndex.read(IDataObject(address(dataObject)), dp, ISampleDataObjectOperations.value.selector, "");
         uint256 val = abi.decode(result, (uint256));
-        require(val == 42, "Value should be 42 after write");
+        assertEq(val, 42, "Value should be 42 after write");
     }
 
     function test_WriteRevertsForUnapprovedDM() public {
@@ -111,8 +111,8 @@ contract MinimalisticDataIndexTest is Test {
         dataIndex.allowDataManager(dp, DATA_MANAGER, true);
         dataIndex.allowDataManager(dp, dm2, true);
 
-        require(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM1 should be approved");
-        require(dataIndex.isApprovedDataManager(dp, dm2), "DM2 should be approved");
+        assertTrue(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM1 should be approved");
+        assertTrue(dataIndex.isApprovedDataManager(dp, dm2), "DM2 should be approved");
     }
 
     // --- Multiple DataPoints ---
@@ -121,7 +121,7 @@ contract MinimalisticDataIndexTest is Test {
         DataPoint dp2 = registry.allocate(address(this));
         dataIndex.allowDataManager(dp, DATA_MANAGER, true);
 
-        require(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved for dp");
-        require(!dataIndex.isApprovedDataManager(dp2, DATA_MANAGER), "DM should NOT be approved for dp2");
+        assertTrue(dataIndex.isApprovedDataManager(dp, DATA_MANAGER), "DM should be approved for dp");
+        assertFalse(dataIndex.isApprovedDataManager(dp2, DATA_MANAGER), "DM should NOT be approved for dp2");
     }
 }

@@ -123,7 +123,7 @@ contract CallbackProcessorDataObjectTest is Test {
             abi.encode(uint256(1), abi.encode("hello"))
         );
 
-        require(mockHandler.callCount() == 1, "Handler should be called once");
+        assertEq(mockHandler.callCount(), 1, "Handler should be called once");
     }
 
     function test_CallbackBitmaskFiltering() public {
@@ -139,7 +139,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ISampleCallbackOperations.execute.selector,
             abi.encode(uint256(2), abi.encode("hello"))
         );
-        require(mockHandler.callCount() == 0, "Handler should not be called for non-matching task");
+        assertEq(mockHandler.callCount(), 0, "Handler should not be called for non-matching task");
 
         // Task bit 1 - handler SHOULD be called
         dataIndex.write(
@@ -147,7 +147,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ISampleCallbackOperations.execute.selector,
             abi.encode(uint256(1), abi.encode("hello"))
         );
-        require(mockHandler.callCount() == 1, "Handler should be called for matching task");
+        assertEq(mockHandler.callCount(), 1, "Handler should be called for matching task");
     }
 
     function test_CallbackBitmaskOverlap() public {
@@ -163,7 +163,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ISampleCallbackOperations.execute.selector,
             abi.encode(uint256(2), abi.encode("data"))
         );
-        require(mockHandler.callCount() == 1, "Should be called when mask overlaps");
+        assertEq(mockHandler.callCount(), 1, "Should be called when mask overlaps");
     }
 
     // --- Failure Propagation ---
@@ -224,7 +224,7 @@ contract CallbackProcessorDataObjectTest is Test {
             abi.encode(uint256(1), abi.encode("data"))
         );
 
-        require(mockHandler.callCount() == 1, "Mock handler should be called");
+        assertEq(mockHandler.callCount(), 1, "Mock handler should be called");
     }
 
     // --- No handlers registered ---
@@ -280,6 +280,6 @@ contract CallbackProcessorDataObjectTest is Test {
         );
 
         (, , bytes memory receivedCtx) = mockHandler.calls(0);
-        require(keccak256(receivedCtx) == keccak256(ctx), "Context should match");
+        assertEq(keccak256(receivedCtx), keccak256(ctx), "Context should match");
     }
 }
