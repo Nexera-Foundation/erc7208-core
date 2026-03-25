@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {DataPointRegistry} from "./DataPointRegistry.sol";
-import {MinimalisticDataIndex} from "./MinimalisticDataIndex.sol";
-import {SampleDataObject} from "./examples/SampleDataObject.sol";
-import {ISampleDataObjectOperations} from "./examples/SampleDataObject.sol";
-import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
-import {IDataIndex} from "./interfaces/IDataIndex.sol";
-import {IDataObject} from "./interfaces/IDataObject.sol";
+import {DataPointRegistry} from "../DataPointRegistry.sol";
+import {MinimalisticDataIndex} from "../MinimalisticDataIndex.sol";
+import {SampleDataObject} from "../examples/SampleDataObject.sol";
+import {ISampleDataObjectOperations} from "../examples/SampleDataObject.sol";
+import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
+import {IDataIndex} from "../interfaces/IDataIndex.sol";
+import {IDataObject} from "../interfaces/IDataObject.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Test} from "forge-std/Test.sol";
 

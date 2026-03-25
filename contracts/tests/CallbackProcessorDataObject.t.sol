@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {DataPointRegistry} from "./DataPointRegistry.sol";
-import {MinimalisticDataIndex} from "./MinimalisticDataIndex.sol";
-import {SampleCallbackDataObject, ISampleCallbackOperations} from "./test-helpers/SampleCallbackDataObject.sol";
-import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "./test-helpers/TolerantCallbackDataObject.sol";
-import {MockCallbackHandler} from "./test-helpers/MockCallbackHandler.sol";
-import {FailingCallbackHandler} from "./test-helpers/FailingCallbackHandler.sol";
-import {CallbackProcessorDataObject} from "./utils/CallbackProcessorDataObject.sol";
-import {ICallbackProcessorOperations} from "./interfaces/ICallbackProcessorOperations.sol";
-import {IDataObject} from "./interfaces/IDataObject.sol";
-import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
+import {DataPointRegistry} from "../DataPointRegistry.sol";
+import {MinimalisticDataIndex} from "../MinimalisticDataIndex.sol";
+import {SampleCallbackDataObject, ISampleCallbackOperations} from "../test-helpers/SampleCallbackDataObject.sol";
+import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "../test-helpers/TolerantCallbackDataObject.sol";
+import {MockCallbackHandler} from "../test-helpers/MockCallbackHandler.sol";
+import {FailingCallbackHandler} from "../test-helpers/FailingCallbackHandler.sol";
+import {CallbackProcessorDataObject} from "../utils/CallbackProcessorDataObject.sol";
+import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
+import {IDataObject} from "../interfaces/IDataObject.sol";
+import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract CallbackProcessorDataObjectTest is Test {

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {DataPointRegistry} from "./DataPointRegistry.sol";
-import {IDataPointRegistry} from "./interfaces/IDataPointRegistry.sol";
-import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
+import {DataPointRegistry} from "../DataPointRegistry.sol";
+import {IDataPointRegistry} from "../interfaces/IDataPointRegistry.sol";
+import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract DataPointRegistryTest is Test {

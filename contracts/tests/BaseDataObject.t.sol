@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {DataPointRegistry} from "./DataPointRegistry.sol";
-import {MinimalisticDataIndex} from "./MinimalisticDataIndex.sol";
-import {SampleDataObject} from "./examples/SampleDataObject.sol";
-import {ISampleDataObjectOperations} from "./examples/SampleDataObject.sol";
-import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
-import {BaseDataObject} from "./utils/BaseDataObject.sol";
-import {IBaseDataObject} from "./interfaces/IBaseDataObject.sol";
-import {IDataIndex} from "./interfaces/IDataIndex.sol";
-import {IDataObject} from "./interfaces/IDataObject.sol";
+import {DataPointRegistry} from "../DataPointRegistry.sol";
+import {MinimalisticDataIndex} from "../MinimalisticDataIndex.sol";
+import {SampleDataObject} from "../examples/SampleDataObject.sol";
+import {ISampleDataObjectOperations} from "../examples/SampleDataObject.sol";
+import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
+import {BaseDataObject} from "../utils/BaseDataObject.sol";
+import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
+import {IDataIndex} from "../interfaces/IDataIndex.sol";
+import {IDataObject} from "../interfaces/IDataObject.sol";
 import {Test} from "forge-std/Test.sol";
 
 contract BaseDataObjectTest is Test {
