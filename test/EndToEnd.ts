@@ -15,6 +15,7 @@ const VALUE_SELECTOR = toFunctionSelector("value()");
 const SET_SELECTOR = toFunctionSelector("set(uint256)");
 const INC_SELECTOR = toFunctionSelector("inc()");
 const DEC_SELECTOR = toFunctionSelector("dec()");
+const CAS_SELECTOR = toFunctionSelector("compareAndSet(uint256,uint256)");
 
 describe("End-to-End Protocol Workflow", async function () {
     const { viem, ignition, networkHelpers } = await network.connect();
@@ -155,6 +156,66 @@ describe("End-to-End Protocol Workflow", async function () {
             result,
         );
         assert.equal(value, 10n);
+    });
+
+    it("compareAndSet succeeds on match and fails on mismatch", async () => {
+        const dp = await setupDataPoint(dpOwner, dataManager);
+
+        // Set initial value to 10
+        const setData = encodeAbiParameters(
+            parseAbiParameters("uint256"),
+            [10n],
+        );
+        await dataIndex.write.write(
+            [dataObject.address, dp, SET_SELECTOR, setData],
+            { account: dataManager.account },
+        );
+
+        // CAS with correct expected value (10 → 20) should succeed
+        const casSuccess = encodeAbiParameters(
+            parseAbiParameters("uint256, uint256"),
+            [10n, 20n],
+        );
+        await dataIndex.write.write(
+            [dataObject.address, dp, CAS_SELECTOR, casSuccess],
+            { account: dataManager.account },
+        );
+
+        // Value should now be 20
+        const result1 = await dataIndex.read.read([
+            dataObject.address,
+            dp,
+            VALUE_SELECTOR,
+            "0x",
+        ]);
+        const [value1] = decodeAbiParameters(
+            parseAbiParameters("uint256"),
+            result1,
+        );
+        assert.equal(value1, 20n);
+
+        // CAS with wrong expected value (10 → 30) should not change value
+        const casFail = encodeAbiParameters(
+            parseAbiParameters("uint256, uint256"),
+            [10n, 30n],
+        );
+        await dataIndex.write.write(
+            [dataObject.address, dp, CAS_SELECTOR, casFail],
+            { account: dataManager.account },
+        );
+
+        // Value should still be 20
+        const result2 = await dataIndex.read.read([
+            dataObject.address,
+            dp,
+            VALUE_SELECTOR,
+            "0x",
+        ]);
+        const [value2] = decodeAbiParameters(
+            parseAbiParameters("uint256"),
+            result2,
+        );
+        assert.equal(value2, 20n);
     });
 
     it("multiple DataPoints with independent state", async () => {
