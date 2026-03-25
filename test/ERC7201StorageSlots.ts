@@ -19,7 +19,7 @@ const SampleDataObjectUpgradeableModule = buildModule("SampleDataObjectUpgradeab
     const deployer = m.getAccount(0);
     const impl = m.contract("SampleDataObjectUpgradeable");
     const initData = m.encodeFunctionCall(impl, "initialize", []);
-    const proxy = m.contract("TestTransparentProxy", [impl, deployer, initData], { id: "proxy" });
+    const proxy = m.contract("TransparentUpgradeableProxy", [impl, deployer, initData], { id: "proxy" });
     return { proxy, impl };
 });
 
@@ -27,7 +27,7 @@ const SampleCallbackDataObjectUpgradeableModule = buildModule("SampleCallbackDat
     const deployer = m.getAccount(0);
     const impl = m.contract("SampleCallbackDataObjectUpgradeable");
     const initData = m.encodeFunctionCall(impl, "initialize", []);
-    const proxy = m.contract("TestTransparentProxy", [impl, deployer, initData], { id: "proxy" });
+    const proxy = m.contract("TransparentUpgradeableProxy", [impl, deployer, initData], { id: "proxy" });
     return { proxy, impl };
 });
 
