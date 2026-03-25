@@ -16,4 +16,11 @@ interface ICallbackProcessorOperations {
      * @param handler handler to remove
      */
     function unregisterCallback(address handler) external;
+
+    /**
+     * Returns all registered callback handlers for the DataPoint along with their bitmasks
+     * @return handlers array of handler addresses
+     * @return masks array of corresponding bitmasks (same order as handlers)
+     */
+    function getCallbackHandlers() external view returns (address[] memory handlers, uint256[] memory masks);
 }

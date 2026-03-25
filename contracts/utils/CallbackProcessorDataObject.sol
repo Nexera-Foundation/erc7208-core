@@ -54,6 +54,14 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     mapping(DataPoint => CallbackProcessorDpData) private _callbackProcessorData;
     
     /// @inheritdoc BaseDataObject
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual override returns (bytes memory) {
+        if (operation == ICallbackProcessorOperations.getCallbackHandlers.selector) {
+            return _getCallbackHandlers(dp);
+        }
+        return super._dispatchRead(dp, operation, data);
+    }
+
+    /// @inheritdoc BaseDataObject
     function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {
         if (operation == ICallbackProcessorOperations.registerCallback.selector) {
             (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
@@ -178,6 +186,21 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         require(removed, CallbackHandlerNotRegistered(handler));
         delete cpData.properties[handler];
         emit CallbackHandlerUnregistered(dp, handler);
+    }
+
+    /**
+     * Returns all registered callback handlers and their masks for a DataPoint.
+     * @param dp DataPoint to query
+     * @return ABI-encoded (address[] handlers, uint256[] masks)
+     */
+    function _getCallbackHandlers(DataPoint dp) private view returns (bytes memory) {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        address[] memory handlers = cpData.handlers.values();
+        uint256[] memory masks = new uint256[](handlers.length);
+        for (uint256 i; i < handlers.length; i++) {
+            masks[i] = cpData.properties[handlers[i]].mask;
+        }
+        return abi.encode(handlers, masks);
     }
 
     /**

@@ -24,7 +24,9 @@ const MockCallbackHandlerModule = buildModule("MockCallbackHandler", (m) => {
 const REGISTER_SELECTOR = toFunctionSelector(
     "registerCallback(address,uint256,bytes)",
 );
-const UNREGISTER_SELECTOR = toFunctionSelector("unregisterCallback(address)");
+const GET_HANDLERS_SELECTOR = toFunctionSelector(
+    "getCallbackHandlers()",
+);
 const EXECUTE_SELECTOR = toFunctionSelector("execute(uint256,bytes)");
 
 const ALL_OPERATIONS = 2n ** 256n - 1n;
@@ -76,6 +78,20 @@ describe("Callback Workflow", async function () {
             [dataObject.address, dp, REGISTER_SELECTOR, registerData],
             { account: dataManager.account },
         );
+
+        // Verify registered handler is visible via getCallbackHandlers read
+        const readResult = await dataObject.read.read([
+            dp,
+            GET_HANDLERS_SELECTOR,
+            "0x",
+        ]);
+        const [handlers, masks] = decodeAbiParameters(
+            parseAbiParameters("address[], uint256[]"),
+            readResult,
+        );
+        assert.equal(handlers.length, 1);
+        assert.equal(handlers[0].toLowerCase(), handler.address.toLowerCase());
+        assert.equal(masks[0], ALL_OPERATIONS);
 
         // Execute a task — should trigger the callback handler
         const executeData = encodeAbiParameters(

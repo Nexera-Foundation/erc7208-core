@@ -263,6 +263,83 @@ contract CallbackProcessorDataObjectTest is Test {
         );
     }
 
+    // --- Read introspection ---
+
+    function test_GetCallbackHandlersEmpty() public view {
+        bytes memory result = dataObject.read(
+            dp,
+            ICallbackProcessorOperations.getCallbackHandlers.selector,
+            ""
+        );
+        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        assertEq(handlers.length, 0, "Should return empty handlers");
+        assertEq(masks.length, 0, "Should return empty masks");
+    }
+
+    function test_GetCallbackHandlersReturnsRegistered() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), uint256(42), "")
+        );
+
+        bytes memory result = dataObject.read(
+            dp,
+            ICallbackProcessorOperations.getCallbackHandlers.selector,
+            ""
+        );
+        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        assertEq(handlers.length, 1, "Should return one handler");
+        assertEq(handlers[0], address(mockHandler), "Handler address should match");
+        assertEq(masks[0], 42, "Mask should match");
+    }
+
+    function test_GetCallbackHandlersAfterUnregister() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), type(uint256).max, "")
+        );
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.unregisterCallback.selector,
+            abi.encode(address(mockHandler))
+        );
+
+        bytes memory result = dataObject.read(
+            dp,
+            ICallbackProcessorOperations.getCallbackHandlers.selector,
+            ""
+        );
+        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        assertEq(handlers.length, 0, "Should return empty after unregister");
+        assertEq(masks.length, 0, "Should return empty masks after unregister");
+    }
+
+    function test_GetCallbackHandlersMultiple() public {
+        MockCallbackHandler secondHandler = new MockCallbackHandler();
+
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), uint256(1), "")
+        );
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(secondHandler), uint256(2), "")
+        );
+
+        bytes memory result = dataObject.read(
+            dp,
+            ICallbackProcessorOperations.getCallbackHandlers.selector,
+            ""
+        );
+        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        assertEq(handlers.length, 2, "Should return two handlers");
+        assertEq(masks.length, 2, "Should return two masks");
+    }
+
     // --- Context passing ---
 
     function test_ContextIsPassedToHandler() public {
