@@ -19,6 +19,11 @@ yarn clean          # Clean hardhat artifacts
 
 Hardhat 3.0 with `hardhat-toolbox-viem` plugin. Solidity 0.8.30. Tests use Node.js native test runner with Hardhat Viem integration and `hardhat-viem-assertions`.
 
+### Test Organization
+
+- **Solidity tests** (`contracts/tests/*.t.sol`) — Foundry/Forge unit tests. Test individual contract functions and edge cases in isolation.
+- **TypeScript tests** (`test/*.ts`) — Integration/end-to-end/workflow tests. Test multi-contract interactions, deployment flows, access control scenarios, and full protocol workflows using Hardhat Viem.
+
 ## Architecture
 
 ### Core Protocol Components
@@ -48,6 +53,8 @@ Handlers are filtered by task bitmask. Extension points: `_beforeProcessCallback
 - `IDataPointRegistry` — registry operations
 - `IDataObjectCallbackHandler` — callback handler interface
 - `ICallbackProcessorOperations` — callback registration
+
+**Operations interfaces** (e.g. `ICallbackProcessorOperations`) are **not externally implemented interfaces** — they serve as selector sources for the dispatch pattern. DataObjects use the function selectors defined in these interfaces to route operations inside `_dispatchRead`/`_dispatchWrite`, but they never expose those functions as direct external calls. Therefore, Operations interfaces should **not** be advertised via ERC-165 `supportsInterface`.
 
 ### Patterns
 
