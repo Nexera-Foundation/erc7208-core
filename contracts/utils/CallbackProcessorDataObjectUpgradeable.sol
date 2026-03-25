@@ -191,6 +191,9 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     /**
      * Registers or updates a callback handler for a DataPoint.
      * If the handler is already registered, its mask and context are updated.
+     * @dev There is no built-in cap on the number of handlers per DataPoint. Registering too many
+     * handlers may cause `_processCallbacks()` to exceed the block gas limit. Inheriting contracts
+     * that need a cap should override `_dispatchWrite()` to enforce one before calling `super`.
      */
     function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
         require(ERC165Checker.supportsInterface(handler, type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
