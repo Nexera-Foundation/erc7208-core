@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, before, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import { network } from "hardhat";
 import {
     encodeAbiParameters,
@@ -20,16 +20,9 @@ describe("Access Control", async function () {
         await viem.getWalletClients();
     let snap: Awaited<ReturnType<typeof networkHelpers.takeSnapshot>>;
 
-    let registry: any;
-    let dataObject: any;
-    let dataIndex: any;
-
-    before(async () => {
-        registry = (await ignition.deploy(DataPointRegistryModule)).registry;
-        dataObject = (await ignition.deploy(SampleDataObjectModule)).dataObject;
-        dataIndex = (await ignition.deploy(MinimalisticDataIndexModule))
-            .dataIndex;
-    });
+    const { registry } = await ignition.deploy(DataPointRegistryModule);
+    const { dataObject } = await ignition.deploy(SampleDataObjectModule);
+    const { dataIndex } = await ignition.deploy(MinimalisticDataIndexModule);
 
     beforeEach(async function () {
         snap = await networkHelpers.takeSnapshot();

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, before, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import { network } from "hardhat";
 import DataPointRegistryModule from "../ignition/modules/DataPointRegistry.js";
 
@@ -7,12 +7,8 @@ describe("DataPointRegistry", async function () {
     const { viem, ignition, networkHelpers } = await network.connect();
     const [owner, user1, user2] = await viem.getWalletClients();
     let snap: Awaited<ReturnType<typeof networkHelpers.takeSnapshot>>;
-    let dataPointRegistry: any;
 
-    before(async () => {
-        const { registry } = await ignition.deploy(DataPointRegistryModule);
-        dataPointRegistry = registry;
-    });
+    const { registry: dataPointRegistry } = await ignition.deploy(DataPointRegistryModule);
 
     beforeEach(async function () {
         snap = await networkHelpers.takeSnapshot();

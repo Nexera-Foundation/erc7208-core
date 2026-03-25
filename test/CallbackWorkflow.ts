@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, before, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import { network } from "hardhat";
 import {
     encodeAbiParameters,
@@ -35,19 +35,10 @@ describe("Callback Workflow", async function () {
         await viem.getWalletClients();
     let snap: Awaited<ReturnType<typeof networkHelpers.takeSnapshot>>;
 
-    let registry: any;
-    let dataObject: any;
-    let dataIndex: any;
-    let handler: any;
-
-    before(async () => {
-        registry = (await ignition.deploy(DataPointRegistryModule)).registry;
-        dataObject = (await ignition.deploy(SampleCallbackDataObjectModule))
-            .dataObject;
-        dataIndex = (await ignition.deploy(MinimalisticDataIndexModule))
-            .dataIndex;
-        handler = (await ignition.deploy(MockCallbackHandlerModule)).handler;
-    });
+    const { registry } = await ignition.deploy(DataPointRegistryModule);
+    const { dataObject } = await ignition.deploy(SampleCallbackDataObjectModule);
+    const { dataIndex } = await ignition.deploy(MinimalisticDataIndexModule);
+    const { handler } = await ignition.deploy(MockCallbackHandlerModule);
 
     beforeEach(async function () {
         snap = await networkHelpers.takeSnapshot();

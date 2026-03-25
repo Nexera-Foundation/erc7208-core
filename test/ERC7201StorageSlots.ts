@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, before, beforeEach, afterEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import { network } from "hardhat";
 import {
     keccak256,
@@ -58,13 +58,8 @@ describe("ERC-7201 Storage Slot Verification", async function () {
     const publicClient = await viem.getPublicClient();
     let snap: Awaited<ReturnType<typeof networkHelpers.takeSnapshot>>;
 
-    let registry: any;
-    let dataIndex: any;
-
-    before(async () => {
-        registry = (await ignition.deploy(DataPointRegistryModule)).registry;
-        dataIndex = (await ignition.deploy(MinimalisticDataIndexModule)).dataIndex;
-    });
+    const { registry } = await ignition.deploy(DataPointRegistryModule);
+    const { dataIndex } = await ignition.deploy(MinimalisticDataIndexModule);
 
     beforeEach(async function () {
         snap = await networkHelpers.takeSnapshot();
