@@ -7,6 +7,7 @@ import {SampleCallbackDataObject, ISampleCallbackOperations} from "../test-helpe
 import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "../test-helpers/TolerantCallbackDataObject.sol";
 import {MockCallbackHandler} from "../test-helpers/MockCallbackHandler.sol";
 import {FailingCallbackHandler} from "../test-helpers/FailingCallbackHandler.sol";
+import {ReentrantCallbackHandler} from "../test-helpers/ReentrantCallbackHandler.sol";
 import {CallbackProcessorDataObject} from "../utils/CallbackProcessorDataObject.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
@@ -218,6 +219,30 @@ contract CallbackProcessorDataObjectTest is Test {
             IDataObject(address(dataObject)), dp,
             ISampleCallbackOperations.execute.selector,
             abi.encode(uint256(1), abi.encode("data"))
+        );
+    }
+
+    // --- Reentrancy ---
+
+    function test_ReentrantCallbackReverts() public {
+        ReentrantCallbackHandler reentrantHandler = new ReentrantCallbackHandler(
+            address(dataIndex),
+            address(dataObject),
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("reentrant"))
+        );
+
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(reentrantHandler), type(uint256).max, "")
+        );
+
+        vm.expectRevert();
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("trigger"))
         );
     }
 
