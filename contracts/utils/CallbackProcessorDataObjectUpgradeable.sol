@@ -33,14 +33,14 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     using Arrays for address[];
     using EnumerableSet for EnumerableSet.AddressSet;
 
-    uint256 constant public ALL_OPERATIONS = type(uint256).max;
+    uint256 public constant ALL_OPERATIONS = type(uint256).max;
 
     error CallbackHandlerDoesNotSupportCallbackInterface(address handler);
-    event CallbackHandlerUpdated(DataPoint dp, address handler, uint256 mask);
     error CallbackHandlerNotRegistered(address handler);
     error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
 
     event CallbackHandlerRegistered(DataPoint dp, address handler, uint256 mask);
+    event CallbackHandlerUpdated(DataPoint dp, address handler, uint256 mask);
     event CallbackHandlerUnregistered(DataPoint dp, address handler);
     event CallbacksProcessed(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers);
 
