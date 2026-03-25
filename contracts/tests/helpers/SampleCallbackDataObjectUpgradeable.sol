@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.28;
 
-import {DataPoint} from "../utils/DataPoints.sol";
-import {CallbackProcessorDataObjectUpgradeable} from "../utils/CallbackProcessorDataObjectUpgradeable.sol";
+import {DataPoint} from "../../utils/DataPoints.sol";
+import {CallbackProcessorDataObjectUpgradeable} from "../../utils/CallbackProcessorDataObjectUpgradeable.sol";
 
 interface ISampleCallbackUpgradeableOperations {
     function execute(uint256 task, bytes memory taskData) external;

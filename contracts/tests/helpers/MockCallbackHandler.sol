@@ -3,8 +3,8 @@ pragma solidity ^0.8.28;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
-import {DataPoint} from "../utils/DataPoints.sol";
+import {IDataObjectCallbackHandler} from "../../interfaces/IDataObjectCallbackHandler.sol";
+import {DataPoint} from "../../utils/DataPoints.sol";
 
 contract MockCallbackHandler is IDataObjectCallbackHandler, ERC165 {
     struct CallRecord {

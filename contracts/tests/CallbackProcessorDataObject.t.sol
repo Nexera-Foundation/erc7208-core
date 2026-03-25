@@ -3,11 +3,11 @@ pragma solidity ^0.8.28;
 
 import {DataPointRegistry} from "../DataPointRegistry.sol";
 import {MinimalisticDataIndex} from "../MinimalisticDataIndex.sol";
-import {SampleCallbackDataObject, ISampleCallbackOperations} from "../test-helpers/SampleCallbackDataObject.sol";
-import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "../test-helpers/TolerantCallbackDataObject.sol";
-import {MockCallbackHandler} from "../test-helpers/MockCallbackHandler.sol";
-import {FailingCallbackHandler} from "../test-helpers/FailingCallbackHandler.sol";
-import {ReentrantCallbackHandler} from "../test-helpers/ReentrantCallbackHandler.sol";
+import {SampleCallbackDataObject, ISampleCallbackOperations} from "./helpers/SampleCallbackDataObject.sol";
+import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "./helpers/TolerantCallbackDataObject.sol";
+import {MockCallbackHandler} from "./helpers/MockCallbackHandler.sol";
+import {FailingCallbackHandler} from "./helpers/FailingCallbackHandler.sol";
+import {ReentrantCallbackHandler} from "./helpers/ReentrantCallbackHandler.sol";
 import {CallbackProcessorDataObject} from "../utils/CallbackProcessorDataObject.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";

@@ -3,10 +3,10 @@ pragma solidity ^0.8.28;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
-import {IDataIndex} from "../interfaces/IDataIndex.sol";
-import {IDataObject} from "../interfaces/IDataObject.sol";
-import {DataPoint} from "../utils/DataPoints.sol";
+import {IDataObjectCallbackHandler} from "../../interfaces/IDataObjectCallbackHandler.sol";
+import {IDataIndex} from "../../interfaces/IDataIndex.sol";
+import {IDataObject} from "../../interfaces/IDataObject.sol";
+import {DataPoint} from "../../utils/DataPoints.sol";
 
 /**
  * @dev Test helper that attempts to re-enter the DataObject via the DataIndex during callback processing.
