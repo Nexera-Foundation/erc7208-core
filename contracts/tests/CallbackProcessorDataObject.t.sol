@@ -8,6 +8,7 @@ import {TolerantCallbackDataObject, ITolerantCallbackOperations} from "./helpers
 import {MockCallbackHandler} from "./helpers/MockCallbackHandler.sol";
 import {FailingCallbackHandler} from "./helpers/FailingCallbackHandler.sol";
 import {ReentrantCallbackHandler} from "./helpers/ReentrantCallbackHandler.sol";
+import {EmptyRevertCallbackHandler} from "./helpers/EmptyRevertCallbackHandler.sol";
 import {CallbackProcessorDataObject} from "../utils/CallbackProcessorDataObject.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
@@ -175,6 +176,22 @@ contract CallbackProcessorDataObjectTest is Test {
         );
 
         vm.expectRevert(abi.encodeWithSelector(FailingCallbackHandler.HandlerFailed.selector, "intentional failure"));
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("data"))
+        );
+    }
+
+    function test_EmptyRevertReasonUsesCustomError() public {
+        EmptyRevertCallbackHandler emptyRevertHandler = new EmptyRevertCallbackHandler();
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(emptyRevertHandler), type(uint256).max, "")
+        );
+
+        vm.expectRevert(abi.encodeWithSelector(CallbackProcessorDataObject.CallbackHandlerFailedToProcessCallbackWithoutReason.selector, address(emptyRevertHandler)));
         dataIndex.write(
             IDataObject(address(dataObject)), dp,
             ISampleCallbackOperations.execute.selector,
