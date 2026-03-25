@@ -7,10 +7,19 @@ import {
     toFunctionSelector,
     decodeAbiParameters,
 } from "viem";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import DataPointRegistryModule from "../ignition/modules/DataPointRegistry.js";
-import SampleCallbackDataObjectModule from "../ignition/modules/SampleCallbackDataObject.js";
 import MinimalisticDataIndexModule from "../ignition/modules/MinimalisticDataIndex.js";
-import MockCallbackHandlerModule from "../ignition/modules/MockCallbackHandler.js";
+
+const SampleCallbackDataObjectModule = buildModule("SampleCallbackDataObject", (m) => {
+    const dataObject = m.contract("SampleCallbackDataObject");
+    return { dataObject };
+});
+
+const MockCallbackHandlerModule = buildModule("MockCallbackHandler", (m) => {
+    const handler = m.contract("MockCallbackHandler");
+    return { handler };
+});
 
 const REGISTER_SELECTOR = toFunctionSelector(
     "registerCallback(address,uint256,bytes)",

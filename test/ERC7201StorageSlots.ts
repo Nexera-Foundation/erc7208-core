@@ -11,11 +11,30 @@ import {
     getAddress,
     toFunctionSelector,
 } from "viem";
+import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 import DataPointRegistryModule from "../ignition/modules/DataPointRegistry.js";
-import SampleDataObjectUpgradeableModule from "../ignition/modules/SampleDataObjectUpgradeable.js";
-import SampleCallbackDataObjectUpgradeableModule from "../ignition/modules/SampleCallbackDataObjectUpgradeable.js";
 import MinimalisticDataIndexModule from "../ignition/modules/MinimalisticDataIndex.js";
-import MockCallbackHandlerModule from "../ignition/modules/MockCallbackHandler.js";
+
+const SampleDataObjectUpgradeableModule = buildModule("SampleDataObjectUpgradeable", (m) => {
+    const deployer = m.getAccount(0);
+    const impl = m.contract("SampleDataObjectUpgradeable");
+    const initData = m.encodeFunctionCall(impl, "initialize", []);
+    const proxy = m.contract("TestTransparentProxy", [impl, deployer, initData], { id: "proxy" });
+    return { proxy, impl };
+});
+
+const SampleCallbackDataObjectUpgradeableModule = buildModule("SampleCallbackDataObjectUpgradeable", (m) => {
+    const deployer = m.getAccount(0);
+    const impl = m.contract("SampleCallbackDataObjectUpgradeable");
+    const initData = m.encodeFunctionCall(impl, "initialize", []);
+    const proxy = m.contract("TestTransparentProxy", [impl, deployer, initData], { id: "proxy" });
+    return { proxy, impl };
+});
+
+const MockCallbackHandlerModule = buildModule("MockCallbackHandler", (m) => {
+    const handler = m.contract("MockCallbackHandler");
+    return { handler };
+});
 
 /**
  * Compute an ERC-7201 storage slot from a namespace string.
