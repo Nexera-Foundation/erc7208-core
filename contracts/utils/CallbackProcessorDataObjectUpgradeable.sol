@@ -62,17 +62,20 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     // keccak256(abi.encode(uint256(keccak256("nexera-foundation.erc7208-core.storage.CallbackProcessorDataObject")) - 1)) & ~bytes32(uint256(0xff))
     bytes32 private constant CallbackProcessorDataObjectStorageLocation = 0x3cc66f32b02b117d6a00e1c425cc810c9390786dda368db6c901ff1600579500;
 
+    /// @dev Returns the ERC-7201 storage pointer for callback processor data.
     function _getCallbackProcessorDataObjectStorage() private pure returns (CallbackProcessorDataObjectStorage storage $) {
         assembly {
             $.slot := CallbackProcessorDataObjectStorageLocation
         }
     }
 
+    /// @dev Initializes the CallbackProcessorDataObject and its parents (BaseDataObject, AccessControl).
     function __CallbackProcessorDataObject_init() internal onlyInitializing {
         __BaseDataObject_init();
         __CallbackProcessorDataObject_init_unchained();
     }
 
+    /// @dev Unchained initializer for CallbackProcessorDataObject (no-op, reserved for future use).
     function __CallbackProcessorDataObject_init_unchained() internal onlyInitializing {}
 
     /// @inheritdoc BaseDataObjectUpgradeable
@@ -195,6 +198,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
      * Returns only the handlers whose mask matches the given task.
      * @param cpData storage reference to the callback data for a DataPoint
      * @param task bitmask to filter handlers against
+     * @return filtered array of handler addresses whose mask overlaps with `task`
      */
     function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns (address[] memory) {
         address[] memory handlers = cpData.handlers.values();
@@ -215,6 +219,10 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     /**
      * Registers or updates a callback handler for a DataPoint.
      * If the handler is already registered, its mask and context are updated.
+     * @param dp DataPoint to register the handler for
+     * @param handler address of the callback handler (must support IDataObjectCallbackHandler)
+     * @param mask bitmask controlling which tasks trigger this handler
+     * @param context arbitrary data passed to the handler on each callback invocation
      * @dev There is no built-in cap on the number of handlers per DataPoint. Registering too many
      * handlers may cause `_processCallbacks()` to exceed the block gas limit. Inheriting contracts
      * that need a cap should override `_dispatchWrite()` to enforce one before calling `super`.

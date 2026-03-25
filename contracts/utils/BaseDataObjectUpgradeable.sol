@@ -135,11 +135,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         _setDataIndexImplementationInternal(dp, newDataIndex);
     }
 
-    /**
-     * Set default DataIndex implementation, which should be used if none is set for a DataPoint
-     * @param newDataIndex Address DataIndex implementations
-     * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
-     */
+    /// @inheritdoc IBaseDataObject
     function setDefaultDataIndexImplementation(address newDataIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newDataIndex != address(0)) {
             _requireDataIndexIsValid(newDataIndex);

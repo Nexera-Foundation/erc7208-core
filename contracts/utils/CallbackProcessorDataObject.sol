@@ -156,6 +156,10 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
     /**
      * Registers or updates a callback handler for a DataPoint.
      * If the handler is already registered, its mask and context are updated.
+     * @param dp DataPoint to register the handler for
+     * @param handler address of the callback handler (must support IDataObjectCallbackHandler)
+     * @param mask bitmask controlling which tasks trigger this handler
+     * @param context arbitrary data passed to the handler on each callback invocation
      * @dev There is no built-in cap on the number of handlers per DataPoint. Registering too many
      * handlers may cause `_processCallbacks()` to exceed the block gas limit. Inheriting contracts
      * that need a cap should override `_dispatchWrite()` to enforce one before calling `super`.
@@ -207,6 +211,7 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
      * Returns only the handlers whose mask matches the given task.
      * @param cpData storage reference to the callback data for a DataPoint
      * @param task bitmask to filter handlers against
+     * @return filtered array of handler addresses whose mask overlaps with `task`
      */
     function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns(address[] memory) {
         address[] memory handlers = cpData.handlers.values();
