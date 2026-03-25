@@ -47,7 +47,7 @@ contract DataPointRegistryTest is Test {
     }
 
     function test_AllocateEmitsEvent() public {
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, true);
         emit IDataPointRegistry.DataPointAllocated(DataPoint.wrap(bytes32(0)), address(this));
         registry.allocate(address(this));
     }
@@ -86,6 +86,12 @@ contract DataPointRegistryTest is Test {
         vm.prank(ACCOUNT_1);
         vm.expectRevert(abi.encodeWithSelector(IDataPointRegistry.InvalidDataPointOwner.selector, dp, ACCOUNT_1));
         registry.transferOwnership(dp, ACCOUNT_2);
+    }
+
+    function test_TransferOwnershipRevertsOnZeroAddress() public {
+        DataPoint dp = registry.allocate(address(this));
+        vm.expectRevert(abi.encodeWithSelector(IDataPointRegistry.InvalidOwnerAddress.selector, address(0)));
+        registry.transferOwnership(dp, address(0));
     }
 
     function test_TransferOwnershipChain() public {

@@ -57,6 +57,7 @@ contract DataPointRegistry is IDataPointRegistry {
         DPAccessData storage dpd = _accessData[dp];
         address currentOwner = dpd.owner;
         if (msg.sender != currentOwner) revert InvalidDataPointOwner(dp, msg.sender);
+        if (newOwner == address(0)) revert InvalidOwnerAddress(newOwner);
         _cleanAdmins(dpd.admins);
         dpd.owner = newOwner;
         dpd.admins.add(newOwner);
