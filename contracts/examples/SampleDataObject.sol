@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
 import {DataPoint} from "../utils/DataPoints.sol";
 import {BaseDataObject} from "../utils/BaseDataObject.sol";
