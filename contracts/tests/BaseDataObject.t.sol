@@ -138,6 +138,12 @@ contract BaseDataObjectTest is Test {
         require(dataObject.overrideDataIndex(dp2) == address(dataIndex), "DI should be set");
     }
 
+    function test_SetDataIndexRevertsForNonIDataIndexAddress() public {
+        DataPoint dp2 = registry.allocate(address(this));
+        vm.expectRevert();
+        dataObject.setDataIndexImplementation(dp2, address(0xBEEF));
+    }
+
     function test_SetDataIndexRevertsForNonAdmin() public {
         DataPoint dp2 = registry.allocate(address(this));
         vm.prank(address(0x999));
