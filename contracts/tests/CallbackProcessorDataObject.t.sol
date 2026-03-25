@@ -166,6 +166,53 @@ contract CallbackProcessorDataObjectTest is Test {
         assertEq(mockHandler.callCount(), 1, "Should be called when mask overlaps");
     }
 
+    // --- Multiple handlers with mixed bitmasks ---
+
+    function test_MixedBitmaskFiltering() public {
+        MockCallbackHandler handlerA = new MockCallbackHandler();
+        MockCallbackHandler handlerB = new MockCallbackHandler();
+        MockCallbackHandler handlerC = new MockCallbackHandler();
+
+        // handlerA: mask=1 (bit 0 only)
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handlerA), uint256(1), "")
+        );
+        // handlerB: mask=2 (bit 1 only)
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handlerB), uint256(2), "")
+        );
+        // handlerC: mask=3 (bits 0 and 1)
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handlerC), uint256(3), "")
+        );
+
+        // Task=1 (bit 0) — should call handlerA and handlerC, skip handlerB
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("data"))
+        );
+        assertEq(handlerA.callCount(), 1, "handlerA should be called for task=1");
+        assertEq(handlerB.callCount(), 0, "handlerB should not be called for task=1");
+        assertEq(handlerC.callCount(), 1, "handlerC should be called for task=1");
+
+        // Task=2 (bit 1) — should call handlerB and handlerC, skip handlerA
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(2), abi.encode("data"))
+        );
+        assertEq(handlerA.callCount(), 1, "handlerA should not be called for task=2");
+        assertEq(handlerB.callCount(), 1, "handlerB should be called for task=2");
+        assertEq(handlerC.callCount(), 2, "handlerC should be called for task=2");
+    }
+
     // --- Failure Propagation ---
 
     function test_FailingHandlerRevertsTransaction() public {
@@ -261,6 +308,39 @@ contract CallbackProcessorDataObjectTest is Test {
             ISampleCallbackOperations.execute.selector,
             abi.encode(uint256(1), abi.encode("trigger"))
         );
+    }
+
+    // --- Unregister effectiveness ---
+
+    function test_UnregisteredHandlerIsNotCalled() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), type(uint256).max, "")
+        );
+
+        // Execute — handler should be called
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("first"))
+        );
+        assertEq(mockHandler.callCount(), 1, "Handler should be called before unregister");
+
+        // Unregister
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.unregisterCallback.selector,
+            abi.encode(address(mockHandler))
+        );
+
+        // Execute again — handler should NOT be called
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("second"))
+        );
+        assertEq(mockHandler.callCount(), 1, "Handler should not be called after unregister");
     }
 
     // --- Read introspection ---
