@@ -62,6 +62,14 @@ Handlers are filtered by task bitmask. Extension points: `_beforeProcessCallback
 - **Dual variants**: Most base contracts have both standard and upgradeable (ERC7201 storage) versions — changes must be kept in sync
 - **OpenZeppelin v5**: AccessControl, ReentrancyGuardTransient, EnumerableSet, ERC165
 
+## Scripts
+
+```bash
+node scripts/erc7201-slot.mjs <namespace>   # Compute ERC-7201 storage slot from namespace string
+```
+
+Use this when adding or updating ERC-7201 storage locations in upgradeable contracts. The namespace convention for this project is `nexera-foundation.erc7208-core.storage.<ContractName>`.
+
 ## Project Structure
 
 - `contracts/` — Core contracts, interfaces, utilities, and examples
