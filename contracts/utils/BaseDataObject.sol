@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
@@ -44,6 +45,11 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
 
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDataObject).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
@@ -59,6 +60,11 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
 
     function __BaseDataObject_init_unchained() internal onlyInitializing {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDataObject).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /**
