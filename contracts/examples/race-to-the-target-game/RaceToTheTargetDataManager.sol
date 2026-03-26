@@ -207,6 +207,10 @@ contract RaceToTheTargetDataManager is Initializable {
         uint256 prize = prizePool();
         emit TargetReached(msg.sender, prize);
 
+        // Reset game state before sending prize (checks-effects-interactions)
+        _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.set.selector, abi.encode(0));
+        emit ValueChanged(0);
+
         // Send prize to the winner, if any
         if (prize > 0) {
             // If winner can not accept the payment, funds stay in prize pool for next round
@@ -215,9 +219,5 @@ contract RaceToTheTargetDataManager is Initializable {
                 emit PrizeTransferFailed(msg.sender, prize);
             }
         }
-
-        // Reset game state (0 value is the starting point)
-        _dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.set.selector, abi.encode(0));
-        emit ValueChanged(0);
     }
 }
