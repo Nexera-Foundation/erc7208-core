@@ -160,7 +160,7 @@ contract RaceToTheTargetDataManager is Initializable {
      * Note: if currentValue is zero, it can not be decremented and will revert.
      */
     function decrement() external payable withPayment(ActionType.STEP) {
-        uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.inc.selector, ""), (uint256));
+        uint256 newValue = abi.decode(_dataIndex.write(_dataObject, _dataPoint, ISampleDataObjectOperations.dec.selector, ""), (uint256));
         _handleNewValue(newValue);
     }
 
@@ -179,7 +179,7 @@ contract RaceToTheTargetDataManager is Initializable {
         if (success) {
             _handleNewValue(newValue);
         } else {
-            emit JumpFailed(newValue, currentValue());
+            emit JumpFailed(expectedValue, currentValue());
         }
     }
 
