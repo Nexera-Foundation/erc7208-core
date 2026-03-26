@@ -11,6 +11,7 @@ import {EmptyRevertCallbackHandler} from "./helpers/EmptyRevertCallbackHandler.s
 import {TolerantCallbackDataObjectUpgradeable, ITolerantCallbackUpgradeableOperations} from "./helpers/TolerantCallbackDataObjectUpgradeable.sol";
 import {BeforeCallbackDataObjectUpgradeable, IBeforeCallbackUpgradeableOperations} from "./helpers/BeforeCallbackDataObjectUpgradeable.sol";
 import {CallbackProcessorDataObjectUpgradeable} from "../utils/CallbackProcessorDataObjectUpgradeable.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
@@ -226,9 +227,11 @@ contract CallbackProcessorDataObjectUpgradeableTest is Test {
             abi.encode(address(reentrantHandler), type(uint256).max, "")
         );
 
-        // The reentrant handler is not an approved DataManager, so DataIndex rejects it
-        // before the reentrancy guard is even reached
-        vm.expectRevert();
+        // Approve the reentrant handler as a DataManager so it passes the DataIndex check
+        // and actually hits the reentrancy guard (simulates a vulnerable approved DM)
+        dataIndex.allowDataManager(dp, address(reentrantHandler), true);
+
+        vm.expectRevert(ReentrancyGuardTransient.ReentrancyGuardReentrantCall.selector);
         dataIndex.write(
             IDataObject(address(dataObject)), dp,
             ISampleCallbackUpgradeableOperations.execute.selector,
