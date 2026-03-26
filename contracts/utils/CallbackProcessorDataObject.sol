@@ -25,6 +25,13 @@ import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOper
  *    first handler failure**, propagating the handler's revert reason. Override this to
  *    suppress the revert if partial failures should be tolerated — only then will
  *    `_afterProcessCallbacks()` be reached with a non-zero `failedHandlers` count.
+ *
+ * To temporarily disable a handler without unregistering it (preserving its context),
+ * update its mask to 0 via `updateCallbackMask` — `(0 & task)` is always false, so the
+ * handler will be filtered out of every callback round.
+ *
+ * Handler execution order is not guaranteed. Handlers are stored in an `EnumerableSet`,
+ * which does not preserve insertion order. Do not rely on one handler running before another.
  */
 abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuardTransient {
     using Arrays for address[];
@@ -69,11 +76,15 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
             return "";
         } else if(operation == ICallbackProcessorOperations.unregisterCallback.selector) {
             (address handler) = abi.decode(data, (address));
-            _unregisterCallback(dp, handler);            
+            _unregisterCallback(dp, handler);
+            return "";
+        } else if(operation == ICallbackProcessorOperations.updateCallbackMask.selector) {
+            (address handler, uint256 mask) = abi.decode(data, (address, uint256));
+            _updateCallbackMask(dp, handler, mask);
             return "";
         }
         return super._dispatchWrite(dp, operation, data);
-    }    
+    }
 
     /**
      * Invokes all registered callback handlers whose mask matches the given task.
@@ -190,6 +201,19 @@ abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuard
         require(removed, CallbackHandlerNotRegistered(handler));
         delete cpData.properties[handler];
         emit CallbackHandlerUnregistered(dp, handler);
+    }
+
+    /**
+     * Updates only the bitmask of an already-registered callback handler, preserving its context.
+     * @param dp DataPoint the handler is registered for
+     * @param handler address of the handler to update
+     * @param mask new bitmask value (0 effectively disables the handler)
+     */
+    function _updateCallbackMask(DataPoint dp, address handler, uint256 mask) private {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        require(cpData.handlers.contains(handler), CallbackHandlerNotRegistered(handler));
+        cpData.properties[handler].mask = mask;
+        emit CallbackHandlerUpdated(dp, handler, mask);
     }
 
     /**
