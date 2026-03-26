@@ -9,6 +9,7 @@ import {MockCallbackHandler} from "./helpers/MockCallbackHandler.sol";
 import {FailingCallbackHandler} from "./helpers/FailingCallbackHandler.sol";
 import {ReentrantCallbackHandler} from "./helpers/ReentrantCallbackHandler.sol";
 import {EmptyRevertCallbackHandler} from "./helpers/EmptyRevertCallbackHandler.sol";
+import {BeforeCallbackDataObject, IBeforeCallbackOperations} from "./helpers/BeforeCallbackDataObject.sol";
 import {CallbackProcessorDataObject} from "../utils/CallbackProcessorDataObject.sol";
 import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
@@ -560,6 +561,44 @@ contract CallbackProcessorDataObjectTest is Test {
             abi.encode(uint256(0), abi.encode("data"))
         );
         assertEq(mockHandler.callCount(), 0, "No handler should be called for task=0");
+    }
+
+    // --- _beforeProcessCallbacks hook ---
+
+    function test_BeforeProcessCallbacksReceivesCorrectArgs() public {
+        BeforeCallbackDataObject beforeDO = new BeforeCallbackDataObject();
+        beforeDO.setDataIndexImplementation(dp, address(dataIndex));
+
+        // Register two handlers with different masks
+        MockCallbackHandler handlerA = new MockCallbackHandler();
+        MockCallbackHandler handlerB = new MockCallbackHandler();
+
+        dataIndex.write(
+            IDataObject(address(beforeDO)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handlerA), uint256(1), "")
+        );
+        dataIndex.write(
+            IDataObject(address(beforeDO)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handlerB), uint256(2), "")
+        );
+
+        // Execute with task=1 — only handlerA should be in the filtered list
+        bytes memory taskData = abi.encode("test");
+        dataIndex.write(
+            IDataObject(address(beforeDO)), dp,
+            IBeforeCallbackOperations.execute.selector,
+            abi.encode(uint256(1), taskData)
+        );
+
+        assertEq(DataPoint.unwrap(beforeDO.lastDp()), DataPoint.unwrap(dp), "dp should match");
+        assertEq(beforeDO.lastTask(), 1, "task should be 1");
+        assertEq(keccak256(beforeDO.lastTaskData()), keccak256(taskData), "taskData should match");
+
+        address[] memory filteredHandlers = beforeDO.getLastHandlers();
+        assertEq(filteredHandlers.length, 1, "Only one handler should match task=1");
+        assertEq(filteredHandlers[0], address(handlerA), "Filtered handler should be handlerA");
     }
 
     // --- Context passing ---
