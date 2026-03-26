@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import {IDataObject} from "./IDataObject.sol";
 import {DataPoint} from "../utils/DataPoints.sol";
@@ -63,9 +63,8 @@ interface IBaseDataObject is IDataObject {
 
     /**
      * Set default DataIndex implementation, which should be used if none is set for a DataPoint
-     * @param newDataIndex Address DataIndex implementations
+     * @param newDataIndex Address of the DataIndex implementation
      * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
      */
     function setDefaultDataIndexImplementation(address newDataIndex) external;
-
 }

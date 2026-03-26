@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 /**
  * @title ChainidTools library
@@ -12,7 +12,7 @@ library ChainidTools {
     /// @dev Error thrown when chainid is not the current chain
     error UnexpectedChain(uint32 expected, uint32 requested);
 
-    /// @dev Error thrown when chainid is not the expected chain
+    /// @dev Error thrown when the current chain was provided but a different chain is required
     error DifferentChainExpected(uint256 chainId);
 
     /**

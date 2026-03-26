@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
@@ -15,6 +16,17 @@ import {ChainidTools} from "./ChainidTools.sol";
  * @notice Base contract for DataObject implementations
  */
 abstract contract BaseDataObject is IBaseDataObject, AccessControl {
+    /**
+     * @dev Error thrown when a read operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchRead()` to handle the operation
+     */
+    error UnsupportedReadOperation(bytes4 operation);
+    /**
+     * @dev Error thrown when a write operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchWrite()` to handle the operation
+     */
+    error UnsupportedWriteOperation(bytes4 operation);
+
     /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
     IDataIndex private _defaultDataIndex;
 
@@ -35,27 +47,40 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDataObject).interfaceId || super.supportsInterface(interfaceId);
+    }
+
     /**
      * Executes requested read operation
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * Extending DataObject SHOULD override this function and call `super._dispatchRead()`
+     * for operations it does not handle.
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual returns (bytes memory);
+    function _dispatchRead(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal view virtual returns (bytes memory) {
+        revert UnsupportedReadOperation(operation);
+    }
 
     /**
      * Executes requested write operation
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * Extending DataObject SHOULD override this function and call `super._dispatchWrite()`
+     * for operations it does not handle.
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual returns (bytes memory);
+    function _dispatchWrite(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal virtual returns (bytes memory) {        
+        revert UnsupportedWriteOperation(operation);
+    }
 
     /// @inheritdoc IBaseDataObject
     function defaultDataIndex() public view returns (address) {
@@ -147,14 +172,14 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
      * @dev Reverts if it's not valid address
      */
     function _requireDataIndexIsValid(address newDataIndex) internal view virtual {
-        if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
+        if (!ERC165Checker.supportsInterface(newDataIndex, type(IDataIndex).interfaceId))
             revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
 
     /**
-     * Set new DataIndex implemetation for a DataPoint WITHOUT VERIFICATIONS
+     * Set new DataIndex implementation for a DataPoint WITHOUT VERIFICATIONS
      * Allows extending DataObject to change DataIndex for a DataPoint using alternative ways
-     * of  DataPoint admin permissions verification
+     * of DataPoint admin permissions verification
      * @param dp DataPoint to change
      * @param newDataIndexImpl new DataIndex address
      */

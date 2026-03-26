@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import {IDataObject} from "./IDataObject.sol";
 import {DataPoint} from "../utils/DataPoints.sol";
@@ -22,7 +22,7 @@ interface IDataObject {
     /**
      * @notice Store data
      * @param dp Identifier of the DataPoint
-     * @param operation Read operation to execute on the data
+     * @param operation Write operation to execute on the data
      * @param data Operation-specific data
      * @return Operation-specific data (can be empty)
      */

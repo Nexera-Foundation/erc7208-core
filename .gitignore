@@ -25,3 +25,7 @@
 # Yarn local stuff
 /.yarn
 yarn-error.log
+
+# Local Claude config
+.claude/settings.local.json
+CLAUDE.local.md

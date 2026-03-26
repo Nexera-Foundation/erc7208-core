@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
 import {IDataObject} from "./IDataObject.sol";
@@ -47,5 +47,5 @@ interface IDataIndex {
      * @return Operation-specific data (can be empty)
      * @dev Function SHOULD be restricted to allowed DMs only
      */
-    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external returns (bytes memory);
+    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external payable returns (bytes memory);
 }

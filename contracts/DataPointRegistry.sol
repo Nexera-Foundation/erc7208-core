@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.28;
 
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {DataPoints, DataPoint} from "./utils/DataPoints.sol";
@@ -57,6 +57,7 @@ contract DataPointRegistry is IDataPointRegistry {
         DPAccessData storage dpd = _accessData[dp];
         address currentOwner = dpd.owner;
         if (msg.sender != currentOwner) revert InvalidDataPointOwner(dp, msg.sender);
+        if (newOwner == address(0)) revert InvalidOwnerAddress(newOwner);
         _cleanAdmins(dpd.admins);
         dpd.owner = newOwner;
         dpd.admins.add(newOwner);

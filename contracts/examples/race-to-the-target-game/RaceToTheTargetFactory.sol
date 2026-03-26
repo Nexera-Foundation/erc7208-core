@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {IDataIndex, IDataObject, DataPoint} from "../../interfaces/IDataIndex.sol";
@@ -14,12 +14,18 @@ contract RaceToTheTargetFactory {
     /// @dev Emitted when a new instance of the game is deployed
     event InstanceDeployed(address instance, DataPoint dataPoint);
 
-    IDataPointRegistry registry;
-    IDataIndex dataIndex;
-    IDataObject dataObject;
-    address gameImplementation;
+    IDataPointRegistry internal registry;
+    IDataIndex internal dataIndex;
+    IDataObject internal dataObject;
+    address internal gameImplementation;
+
+    error ZeroAddress(string param);
 
     constructor(address registry_, address dataIndex_, address dataObject_, address gameImplementation_) {
+        require(registry_ != address(0), ZeroAddress("registry"));
+        require(dataIndex_ != address(0), ZeroAddress("dataIndex"));
+        require(dataObject_ != address(0), ZeroAddress("dataObject"));
+        require(gameImplementation_ != address(0), ZeroAddress("gameImplementation"));
         dataIndex = IDataIndex(dataIndex_);
         registry = IDataPointRegistry(registry_);
         dataObject = IDataObject(dataObject_);
@@ -66,5 +72,4 @@ contract RaceToTheTargetFactory {
         // Example:
         // registry.transferOwnership(gameDataPoint, msg.sender);
     }
-
 }

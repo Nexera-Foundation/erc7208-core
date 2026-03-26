@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
 import {DataPoint} from "../utils/DataPoints.sol";
 import {BaseDataObject} from "../utils/BaseDataObject.sol";
@@ -31,8 +31,6 @@ interface ISampleDataObjectOperations {
 }
 
 contract SampleDataObject is BaseDataObject {
-    error UnknownOperation(bytes4 operation);
-
     /**
      * Storage structure for data of DataPoint
      * @dev Here we do not verify if storage was initialized.
@@ -49,11 +47,11 @@ contract SampleDataObject is BaseDataObject {
     }
 
     /// @inheritdoc BaseDataObject
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata /*data*/) internal view override returns (bytes memory) {
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view override returns (bytes memory) {
         if (operation == ISampleDataObjectOperations.value.selector) {
             return abi.encode(_value(dp));
         }
-        revert UnknownOperation(operation);
+        return super._dispatchRead(dp, operation, data);
     }
 
     /// @inheritdoc BaseDataObject
@@ -65,14 +63,11 @@ contract SampleDataObject is BaseDataObject {
             return abi.encode(_inc(dp));
         } else if (operation == ISampleDataObjectOperations.dec.selector) {
             return abi.encode(_dec(dp));
-        } else if (operation == ISampleDataObjectOperations.set.selector) {
-            _set(dp, abi.decode(data, (uint256)));
-            return "";
         } else if (operation == ISampleDataObjectOperations.compareAndSet.selector) {
             (uint256 expectedValue, uint256 newValue) = abi.decode(data, (uint256, uint256));
             return abi.encode(_compareAndSet(dp, expectedValue, newValue));
         }
-        revert UnknownOperation(operation);
+        return super._dispatchWrite(dp, operation, data);
     }
 
     function _value(DataPoint dp) private view returns (uint256) {

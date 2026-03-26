@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
 import {DataPoint} from "../utils/DataPoints.sol";
 import {BaseDataObjectUpgradeable} from "../utils/BaseDataObjectUpgradeable.sol";
@@ -31,8 +31,6 @@ interface ISampleDataObjectOperations {
 }
 
 contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
-    error UnknownOperation(bytes4 operation);
-
     /**
      * Storage structure for data of DataPoint
      * @dev Here we do not verify if storage was initialized.
@@ -42,18 +40,18 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
         uint256 value;
     }
 
-    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.SampleDataObject
+    /// @custom:storage-location erc7201:nexera-foundation.erc7208-core.storage.SampleDataObject
     struct SampleDataObjectStorage {
         /// @dev Data for each DataPoint
         mapping(DataPoint => DpData) dpData;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.SampleDataObject")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant BaseDataObjectStorageLocation = 0x884288cc3c41441b229fb4daf37dcad4a400c1107d5a7b0727828bb7ccdc3500;
+    // keccak256(abi.encode(uint256(keccak256("nexera-foundation.erc7208-core.storage.SampleDataObject")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SampleDataObjectStorageLocation = 0x595f5a36d7478328c39eb67e59b3ee75d2d59e4291c3b7215e6f258997cc4e00;
 
     function _getSampleDataObjectStorage() private pure returns (SampleDataObjectStorage storage $) {
         assembly {
-            $.slot := BaseDataObjectStorageLocation
+            $.slot := SampleDataObjectStorageLocation
         }
     }
 
@@ -73,11 +71,11 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
     function __SampleDataObject_init_unchained() internal onlyInitializing {}
 
     /// @inheritdoc BaseDataObjectUpgradeable
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata /*data*/) internal view override returns (bytes memory) {
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view override returns (bytes memory) {
         if (operation == ISampleDataObjectOperations.value.selector) {
             return abi.encode(_value(dp));
         }
-        revert UnknownOperation(operation);
+        return super._dispatchRead(dp, operation, data);
     }
 
     /// @inheritdoc BaseDataObjectUpgradeable
@@ -93,7 +91,7 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
             (uint256 expectedValue, uint256 newValue) = abi.decode(data, (uint256, uint256));
             return abi.encode(_compareAndSet(dp, expectedValue, newValue));
         }
-        revert UnknownOperation(operation);
+        return super._dispatchWrite(dp, operation, data);
     }
 
     function _value(DataPoint dp) private view returns (uint256) {

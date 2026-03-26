@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
@@ -15,7 +16,18 @@ import {ChainidTools} from "./ChainidTools.sol";
  * @notice Base contract for DataObject implementations
  */
 abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpgradeable {
-    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.BaseDataObject
+    /**
+     * @dev Error thrown when a read operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchRead()` to handle the operation
+     */
+    error UnsupportedReadOperation(bytes4 operation);
+    /**
+     * @dev Error thrown when a write operation called is not supported by this DataObject. 
+     * Extending DataObject SHOULD override `_dispatchWrite()` to handle the operation
+     */
+    error UnsupportedWriteOperation(bytes4 operation);
+        
+    /// @custom:storage-location erc7201:nexera-foundation.erc7208-core.storage.BaseDataObject
     struct BaseDataObjectStorage {
         /// @dev DataIndex implementation to be used if none is set for DataPoint. Zero address is valid and prevents usage of such DataPoints
         IDataIndex defaultDataIndex;
@@ -23,8 +35,8 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         mapping(DataPoint => IDataIndex) overrideDataIndexes;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant BaseDataObjectStorageLocation = 0x9016d09d72d40fdae2fd8ceac6b6234c7706214fd39c1cd1e609a0528c199300;
+    // keccak256(abi.encode(uint256(keccak256("nexera-foundation.erc7208-core.storage.BaseDataObject")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant BaseDataObjectStorageLocation = 0xa443a0a91e31176e5e439a7da326d436b956bf64f73af115662d0397c1357b00;
 
     function _getBaseDataObjectStorage() private pure returns (BaseDataObjectStorage storage $) {
         assembly {
@@ -50,27 +62,40 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
+    /// @inheritdoc IERC165
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+        return interfaceId == type(IDataObject).interfaceId || super.supportsInterface(interfaceId);
+    }
+
     /**
      * Executes requested read operation
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * Extending DataObject SHOULD override this function and call `super._dispatchRead()`
+     * for operations it does not handle.
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual returns (bytes memory);
+    function _dispatchRead(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal view virtual returns (bytes memory) {
+        revert UnsupportedReadOperation(operation);
+    }
 
     /**
      * Executes requested write operation
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
-     * @param dp DataPoint with the data we should work on
+     * Extending DataObject SHOULD override this function and call `super._dispatchWrite()`
+     * for operations it does not handle.
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
+     * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
-     * @param data Operation arguments. It's recommended to use ABI encoding for this
+     * param data Operation arguments. It's recommended to use ABI encoding for this
      * @return Operation result. It's recommended to use ABI encoding for this
      */
-    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual returns (bytes memory);
+    function _dispatchWrite(DataPoint /*dp*/, bytes4 operation, bytes calldata /*data*/) internal virtual returns (bytes memory) {        
+        revert UnsupportedWriteOperation(operation);
+    }
 
     /// @inheritdoc IBaseDataObject
     function defaultDataIndex() public view returns (address) {
@@ -116,11 +141,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
         _setDataIndexImplementationInternal(dp, newDataIndex);
     }
 
-    /**
-     * Set default DataIndex implementation, which should be used if none is set for a DataPoint
-     * @param newDataIndex Address DataIndex implementations
-     * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
-     */
+    /// @inheritdoc IBaseDataObject
     function setDefaultDataIndexImplementation(address newDataIndex) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (newDataIndex != address(0)) {
             _requireDataIndexIsValid(newDataIndex);
@@ -169,15 +190,15 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
      * @dev Reverts if it's not valid address
      */
     function _requireDataIndexIsValid(address newDataIndex) internal view virtual {
-        if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
+        if (!ERC165Checker.supportsInterface(newDataIndex, type(IDataIndex).interfaceId))
             revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
 
 
     /**
-     * Set new DataIndex implemetation for a DataPoint WITHOUT VERIFICATIONS
+     * Set new DataIndex implementation for a DataPoint WITHOUT VERIFICATIONS
      * Allows extending DataObject to change DataIndex for a DataPoint using alternative ways
-     * of  DataPoint admin permissions verification
+     * of DataPoint admin permissions verification
      * @param dp DataPoint to change
      * @param newDataIndexImpl new DataIndex address
      */

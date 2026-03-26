@@ -1,0 +1,258 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
+import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
+import {DataPoint} from "./DataPoints.sol";
+import {BaseDataObject} from "./BaseDataObject.sol";
+import {IDataObjectCallbackHandler} from "../interfaces/IDataObjectCallbackHandler.sol";
+import {ICallbackProcessorOperations} from "../interfaces/ICallbackProcessorOperations.sol";
+
+/**
+ * @title Callback Processor DataObject
+ * @notice Mixin for DataObjects that need to trigger external callback handlers after write operations.
+ * Handlers are registered per DataPoint with a bitmask filter, so each handler only receives
+ * callbacks for the tasks it is interested in. The extending contract calls `_processCallbacks()`
+ * from its `_dispatchWrite()` after performing the write logic.
+ *
+ * @dev Key extension points:
+ *  - `_beforeProcessCallbacks()` — validate preconditions before handler invocations
+ *  - `_afterProcessCallbacks()` — post-processing; receives success/failure counts
+ *  - `_onCallbackHandlerSuccess()` — per-handler success hook (e.g. collect results)
+ *  - `_onCallbackHandlerFailure()` — per-handler failure hook; **by default reverts on the
+ *    first handler failure**, propagating the handler's revert reason. Override this to
+ *    suppress the revert if partial failures should be tolerated — only then will
+ *    `_afterProcessCallbacks()` be reached with a non-zero `failedHandlers` count.
+ *
+ * To temporarily disable a handler without unregistering it (preserving its context),
+ * update its mask to 0 via `updateCallbackMask` — `(0 & task)` is always false, so the
+ * handler will be filtered out of every callback round.
+ *
+ * Handler execution order is not guaranteed. Handlers are stored in an `EnumerableSet`,
+ * which does not preserve insertion order. Do not rely on one handler running before another.
+ */
+abstract contract CallbackProcessorDataObject is BaseDataObject, ReentrancyGuardTransient {
+    using Arrays for address[];
+    using EnumerableSet for EnumerableSet.AddressSet;
+
+    uint256 public constant ALL_OPERATIONS = type(uint256).max;
+
+    error CallbackHandlerDoesNotSupportCallbackInterface(address handler);
+    error CallbackHandlerNotRegistered(address handler);
+    error CallbackHandlerFailedToProcessCallbackWithoutReason(address handler);
+
+    event CallbackHandlerRegistered(DataPoint dp, address handler, uint256 mask);
+    event CallbackHandlerUpdated(DataPoint dp, address handler, uint256 mask);
+    event CallbackHandlerUnregistered(DataPoint dp, address handler);
+    event CallbacksProcessed(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers);
+
+    struct CallbackHandlerProperties {
+        uint256 mask;
+        bytes context;
+    }
+
+    struct CallbackProcessorDpData {
+        EnumerableSet.AddressSet handlers;
+        mapping(address handler => CallbackHandlerProperties) properties;
+    }
+
+    mapping(DataPoint => CallbackProcessorDpData) private _callbackProcessorData;
+    
+    /// @inheritdoc BaseDataObject
+    function _dispatchRead(DataPoint dp, bytes4 operation, bytes calldata data) internal view virtual override returns (bytes memory) {
+        if (operation == ICallbackProcessorOperations.getCallbackHandlers.selector) {
+            return _getCallbackHandlers(dp);
+        }
+        return super._dispatchRead(dp, operation, data);
+    }
+
+    /// @inheritdoc BaseDataObject
+    function _dispatchWrite(DataPoint dp, bytes4 operation, bytes calldata data) internal virtual override returns (bytes memory) {
+        if (operation == ICallbackProcessorOperations.registerCallback.selector) {
+            (address handler, uint256 mask, bytes memory context) = abi.decode(data, (address, uint256, bytes));
+            _registerCallback(dp, handler, mask, context);
+            return "";
+        } else if(operation == ICallbackProcessorOperations.unregisterCallback.selector) {
+            (address handler) = abi.decode(data, (address));
+            _unregisterCallback(dp, handler);
+            return "";
+        } else if(operation == ICallbackProcessorOperations.updateCallbackMask.selector) {
+            (address handler, uint256 mask) = abi.decode(data, (address, uint256));
+            _updateCallbackMask(dp, handler, mask);
+            return "";
+        }
+        return super._dispatchWrite(dp, operation, data);
+    }
+
+    /**
+     * Invokes all registered callback handlers whose mask matches the given task.
+     * @param dp DataPoint to process callbacks for
+     * @param task bitmask identifying the task that triggered the callbacks
+     * @param taskData ABI-encoded data to pass to each handler
+     */
+    function _processCallbacks(DataPoint dp, uint256 task, bytes memory taskData) internal nonReentrant {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        address[] memory handlers = _filterCallbackHandlers(cpData, task);
+        _beforeProcessCallbacks(dp, task, taskData, handlers);
+        uint256 failedHandlersCount;
+        for(uint256 i; i < handlers.length; i++) {
+            address handler = handlers[i];
+            bytes memory context = cpData.properties[handler].context;
+            try IDataObjectCallbackHandler(handler).handleDataObjectCallback(dp, taskData, context) returns(bytes memory result){
+                _onCallbackHandlerSuccess(dp, task, handler, result);
+            } catch(bytes memory reason)  {
+                failedHandlersCount++;
+                _onCallbackHandlerFailure(dp, task, handler, reason);
+            }
+        }
+        _afterProcessCallbacks(dp, task, handlers.length - failedHandlersCount, failedHandlersCount);
+    }
+
+    /**
+     * Extension point to validate requirements before processing task via handlers
+     * param dp DataPoint to work with
+     * param task task to handle
+     * param taskData task data
+     * param handlers list of handlers which will be called to process the task (filtered)
+     * @dev Can be overridden to do required verification
+     */
+    function _beforeProcessCallbacks(DataPoint /*dp*/, uint256 /*task*/, bytes memory /*taskData*/, address[] memory /*handlers*/) internal virtual {}
+
+    /**
+     * Extension point to validate requirements after processing task via handlers
+     * @param dp DataPoint to work with
+     * @param task task to handle
+     * @param successfulHandlers count of successful handler calls
+     * @param failedHandlers count of failed handler calls
+     * @dev Can be overridden if extra processing is needed.
+     * Overriding contract should emit the CallbacksProcessed event itself or call `super._afterProcessCallbacks()`
+     */
+    function _afterProcessCallbacks(DataPoint dp, uint256 task, uint256 successfulHandlers, uint256 failedHandlers) internal virtual {
+        emit CallbacksProcessed(dp, task, successfulHandlers, failedHandlers);
+    }
+
+    /**
+     * Extension point to customize callback result processing
+     * param dp DataPoint to work with
+     * param task task to handle
+     * param handler address of the handler
+     * param result data returned by the callback
+     */
+    function _onCallbackHandlerSuccess(DataPoint /*dp*/, uint256 /*task*/, address /*handler*/, bytes memory /*result*/) internal virtual {
+    }
+
+    /**
+     * Extension point to customize error processing
+     * param dp DataPoint to work with
+     * param task task to handle
+     * @param handler address of failed handler
+     * @param reason revert reason
+     * @dev Default implementation reverts on the first handler failure, re-raising the original
+     * revert reason. This means `_afterProcessCallbacks()` will never be called with a non-zero
+     * `failedHandlers` count unless this function is overridden to not revert.
+     */
+    function _onCallbackHandlerFailure(DataPoint /*dp*/, uint256 /*task*/, address handler, bytes memory reason) internal virtual {
+        if (reason.length == 0) {  
+            revert CallbackHandlerFailedToProcessCallbackWithoutReason(handler);  
+        } else {  
+            // Revert with same reason
+            assembly ("memory-safe") {  
+                revert(add(reason, 0x20), mload(reason))  
+            }
+        }
+    }
+
+    /**
+     * Registers or updates a callback handler for a DataPoint.
+     * If the handler is already registered, its mask and context are updated.
+     * @param dp DataPoint to register the handler for
+     * @param handler address of the callback handler (must support IDataObjectCallbackHandler)
+     * @param mask bitmask controlling which tasks trigger this handler
+     * @param context arbitrary data passed to the handler on each callback invocation
+     * @dev There is no built-in cap on the number of handlers per DataPoint. Registering too many
+     * handlers may cause `_processCallbacks()` to exceed the block gas limit. Inheriting contracts
+     * that need a cap should override `_dispatchWrite()` to enforce one before calling `super`.
+     */
+    function _registerCallback(DataPoint dp, address handler, uint256 mask, bytes memory context) private {
+        require(ERC165Checker.supportsInterface(handler, type(IDataObjectCallbackHandler).interfaceId), CallbackHandlerDoesNotSupportCallbackInterface(handler));
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        bool added = cpData.handlers.add(handler);
+        cpData.properties[handler] = CallbackHandlerProperties({
+            mask: mask,
+            context: context
+        });
+        if (added) {
+            emit CallbackHandlerRegistered(dp, handler, mask);
+        } else {
+            emit CallbackHandlerUpdated(dp, handler, mask);
+        }
+    }
+
+    /**
+     * Removes a callback handler for a DataPoint.
+     * @param dp DataPoint to unregister the handler from
+     * @param handler address of the handler to remove
+     */
+    function _unregisterCallback(DataPoint dp, address handler) private {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        bool removed = cpData.handlers.remove(handler);
+        require(removed, CallbackHandlerNotRegistered(handler));
+        delete cpData.properties[handler];
+        emit CallbackHandlerUnregistered(dp, handler);
+    }
+
+    /**
+     * Updates only the bitmask of an already-registered callback handler, preserving its context.
+     * @param dp DataPoint the handler is registered for
+     * @param handler address of the handler to update
+     * @param mask new bitmask value (0 effectively disables the handler)
+     */
+    function _updateCallbackMask(DataPoint dp, address handler, uint256 mask) private {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        require(cpData.handlers.contains(handler), CallbackHandlerNotRegistered(handler));
+        cpData.properties[handler].mask = mask;
+        emit CallbackHandlerUpdated(dp, handler, mask);
+    }
+
+    /**
+     * Returns all registered callback handlers with their masks and contexts for a DataPoint.
+     * @param dp DataPoint to query
+     * @return ABI-encoded (address[] handlers, uint256[] masks, bytes[] contexts)
+     */
+    function _getCallbackHandlers(DataPoint dp) private view returns (bytes memory) {
+        CallbackProcessorDpData storage cpData = _callbackProcessorData[dp];
+        address[] memory handlers = cpData.handlers.values();
+        uint256[] memory masks = new uint256[](handlers.length);
+        bytes[] memory contexts = new bytes[](handlers.length);
+        for (uint256 i; i < handlers.length; i++) {
+            CallbackHandlerProperties storage props = cpData.properties[handlers[i]];
+            masks[i] = props.mask;
+            contexts[i] = props.context;
+        }
+        return abi.encode(handlers, masks, contexts);
+    }
+
+    /**
+     * Returns only the handlers whose mask matches the given task.
+     * @param cpData storage reference to the callback data for a DataPoint
+     * @param task bitmask to filter handlers against
+     * @return filtered array of handler addresses whose mask overlaps with `task`
+     */
+    function _filterCallbackHandlers(CallbackProcessorDpData storage cpData, uint256 task) private view returns(address[] memory) {
+        address[] memory handlers = cpData.handlers.values();
+        uint256 nextFreeIndex; // This variable points to a slot available for next suitable handler
+        for(uint256 i; i < handlers.length; i++) {
+            address handler = handlers[i];
+            uint256 mask = cpData.properties[handler].mask;
+            if((mask & task) != 0) {
+                if(nextFreeIndex < i) {
+                    handlers[nextFreeIndex] = handlers[i];
+                }
+                nextFreeIndex++;
+            }
+        }
+        return handlers.slice(0,nextFreeIndex);
+    }
+}

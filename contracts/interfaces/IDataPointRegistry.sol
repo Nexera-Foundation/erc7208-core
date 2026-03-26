@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.28;
 
 import {DataPoint} from "../utils/DataPoints.sol";
 
@@ -93,7 +93,7 @@ interface IDataPointRegistry {
      * @param dp DataPoint identifier
      * @param account Old admin
      * @dev If an owner revokes Admin role from himself, he can add it again
-     * @return If the role was revoked (otherwise account didn't had the role)
+     * @return If the role was revoked (otherwise account didn't have the role)
      */
     function revokeAdminRole(DataPoint dp, address account) external returns (bool);
 }

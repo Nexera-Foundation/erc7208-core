@@ -22,6 +22,9 @@ const config: HardhatUserConfig = {
         },
       },
     },
+    npmFilesToBuild: [
+      "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol",
+    ],
   },
   networks: {
     hardhatMainnet: {

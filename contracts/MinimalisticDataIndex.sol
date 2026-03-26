@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.27;
+pragma solidity ^0.8.28;
 
 import {IERC165, ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IDataIndex} from "./interfaces/IDataIndex.sol";
@@ -53,7 +53,7 @@ contract MinimalisticDataIndex is IDataIndex, ERC165 {
     }
 
     /**
-     * @notice Allows access only to DataManagers which was previously approved
+     * @notice Allows access only to DataManagers that were previously approved
      * @param dp DataPoint to check DataManager approval for
      */
     modifier onlyApprovedDM(DataPoint dp) {
@@ -90,8 +90,8 @@ contract MinimalisticDataIndex is IDataIndex, ERC165 {
     }
 
     ///@inheritdoc IDataIndex
-    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external onlyApprovedDM(dp) returns (bytes memory) {
-        return dobj.write(dp, operation, data);
+    function write(IDataObject dobj, DataPoint dp, bytes4 operation, bytes calldata data) external payable onlyApprovedDM(dp) returns (bytes memory) {
+        return dobj.write{value: msg.value}(dp, operation, data);
     }
 
     /**
