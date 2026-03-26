@@ -19,11 +19,13 @@ contract RaceToTheTargetFactory {
     IDataObject internal dataObject;
     address internal gameImplementation;
 
+    error ZeroAddress(string param);
+
     constructor(address registry_, address dataIndex_, address dataObject_, address gameImplementation_) {
-        require(registry_ != address(0), "Registry address cannot be zero");
-        require(dataIndex_ != address(0), "DataIndex address cannot be zero");
-        require(dataObject_ != address(0), "DataObject address cannot be zero");
-        require(gameImplementation_ != address(0), "Game implementation address cannot be zero");
+        require(registry_ != address(0), ZeroAddress("registry"));
+        require(dataIndex_ != address(0), ZeroAddress("dataIndex"));
+        require(dataObject_ != address(0), ZeroAddress("dataObject"));
+        require(gameImplementation_ != address(0), ZeroAddress("gameImplementation"));
         dataIndex = IDataIndex(dataIndex_);
         registry = IDataPointRegistry(registry_);
         dataObject = IDataObject(dataObject_);
@@ -70,5 +72,4 @@ contract RaceToTheTargetFactory {
         // Example:
         // registry.transferOwnership(gameDataPoint, msg.sender);
     }
-
 }

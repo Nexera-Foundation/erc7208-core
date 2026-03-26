@@ -67,5 +67,4 @@ interface IBaseDataObject is IDataObject {
      * @dev NOTE: zero address is valid and can be used to disallow usage of DataPoints without DataIndex set for them
      */
     function setDefaultDataIndexImplementation(address newDataIndex) external;
-
 }

@@ -6,7 +6,6 @@ import {ChainidTools} from "./ChainidTools.sol";
 /// @dev DataPoint is a 32 bytes structure which contains information about data point
 type DataPoint is bytes32;
 
-using DataPoints for DataPoint global;
 using {equals as ==} for DataPoint global;
 
 /**

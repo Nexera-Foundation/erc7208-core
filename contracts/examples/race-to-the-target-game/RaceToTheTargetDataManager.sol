@@ -61,6 +61,7 @@ contract RaceToTheTargetDataManager is Initializable {
     event JumpFailed(uint256 expectedValue, uint256 actualValue);
     /// @dev Emitted when target value reached
     event TargetReached(address winner, uint256 prize);
+    /// @dev Emitted when prize transfer to the winner fails (e.g. winner contract rejects payment)
     event PrizeTransferFailed(address winner, uint256 prize);
 
     /// @dev Type of the action, used to determine correct payment
