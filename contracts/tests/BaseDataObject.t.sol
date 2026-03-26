@@ -8,6 +8,7 @@ import {ISampleDataObjectOperations} from "../examples/SampleDataObject.sol";
 import {DataPoints, DataPoint} from "../utils/DataPoints.sol";
 import {BaseDataObject} from "../utils/BaseDataObject.sol";
 import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {IDataIndex} from "../interfaces/IDataIndex.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {Test} from "forge-std/Test.sol";
@@ -108,7 +109,7 @@ contract BaseDataObjectTest is Test {
 
     function test_SetDefaultDataIndexRevertsForNonAdmin() public {
         vm.prank(address(0x999));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, address(0x999), bytes32(0)));
         dataObject.setDefaultDataIndexImplementation(address(dataIndex));
     }
 
@@ -140,7 +141,7 @@ contract BaseDataObjectTest is Test {
 
     function test_SetDataIndexRevertsForNonIDataIndexAddress() public {
         DataPoint dp2 = registry.allocate(address(this));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(IBaseDataObject.IncorrectDataIndexImplementationAddress.selector, address(0xBEEF)));
         dataObject.setDataIndexImplementation(dp2, address(0xBEEF));
     }
 
