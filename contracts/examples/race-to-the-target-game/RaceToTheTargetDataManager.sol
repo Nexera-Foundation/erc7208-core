@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IDataIndex, IDataObject, DataPoint} from "../../interfaces/IDataIndex.sol";
 import {ISampleDataObjectOperations} from "../SampleDataObject.sol";
 
@@ -62,6 +61,7 @@ contract RaceToTheTargetDataManager is Initializable {
     event JumpFailed(uint256 expectedValue, uint256 actualValue);
     /// @dev Emitted when target value reached
     event TargetReached(address winner, uint256 prize);
+    event PrizeTransferFailed(address winner, uint256 prize);
 
     /// @dev Type of the action, used to determine correct payment
     enum ActionType {
@@ -209,8 +209,11 @@ contract RaceToTheTargetDataManager is Initializable {
 
         // Send prize to the winner, if any
         if (prize > 0) {
-            // Note: If winner can not accept the payment, tx will be reverted
-            Address.sendValue(payable(msg.sender), prize);
+            // If winner can not accept the payment, funds stay in prize pool for next round
+            (bool success, ) = payable(msg.sender).call{value: prize}("");
+            if (!success) {
+                emit PrizeTransferFailed(msg.sender, prize);
+            }
         }
 
         // Reset game state (0 value is the starting point)
