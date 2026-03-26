@@ -351,7 +351,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ICallbackProcessorOperations.getCallbackHandlers.selector,
             ""
         );
-        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
         assertEq(handlers.length, 0, "Should return empty handlers");
         assertEq(masks.length, 0, "Should return empty masks");
     }
@@ -368,7 +368,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ICallbackProcessorOperations.getCallbackHandlers.selector,
             ""
         );
-        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
         assertEq(handlers.length, 1, "Should return one handler");
         assertEq(handlers[0], address(mockHandler), "Handler address should match");
         assertEq(masks[0], 42, "Mask should match");
@@ -391,7 +391,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ICallbackProcessorOperations.getCallbackHandlers.selector,
             ""
         );
-        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
         assertEq(handlers.length, 0, "Should return empty after unregister");
         assertEq(masks.length, 0, "Should return empty masks after unregister");
     }
@@ -415,7 +415,7 @@ contract CallbackProcessorDataObjectTest is Test {
             ICallbackProcessorOperations.getCallbackHandlers.selector,
             ""
         );
-        (address[] memory handlers, uint256[] memory masks) = abi.decode(result, (address[], uint256[]));
+        (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
         assertEq(handlers.length, 2, "Should return two handlers");
         assertEq(masks.length, 2, "Should return two masks");
     }

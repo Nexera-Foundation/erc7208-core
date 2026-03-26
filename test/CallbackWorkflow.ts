@@ -86,7 +86,7 @@ describe("Callback Workflow", async function () {
             "0x",
         ]);
         const [handlers, masks] = decodeAbiParameters(
-            parseAbiParameters("address[], uint256[]"),
+            parseAbiParameters("address[], uint256[], bytes[]"),
             readResult,
         );
         assert.equal(handlers.length, 1);

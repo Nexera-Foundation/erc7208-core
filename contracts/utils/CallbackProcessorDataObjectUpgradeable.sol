@@ -190,19 +190,22 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
     }
 
     /**
-     * Returns all registered callback handlers and their masks for a DataPoint.
+     * Returns all registered callback handlers with their masks and contexts for a DataPoint.
      * @param dp DataPoint to query
-     * @return ABI-encoded (address[] handlers, uint256[] masks)
+     * @return ABI-encoded (address[] handlers, uint256[] masks, bytes[] contexts)
      */
     function _getCallbackHandlers(DataPoint dp) private view returns (bytes memory) {
         CallbackProcessorDataObjectStorage storage $ = _getCallbackProcessorDataObjectStorage();
         CallbackProcessorDpData storage cpData = $.callbackProcessorData[dp];
         address[] memory handlers = cpData.handlers.values();
         uint256[] memory masks = new uint256[](handlers.length);
+        bytes[] memory contexts = new bytes[](handlers.length);
         for (uint256 i; i < handlers.length; i++) {
-            masks[i] = cpData.properties[handlers[i]].mask;
+            CallbackHandlerProperties storage props = cpData.properties[handlers[i]];
+            masks[i] = props.mask;
+            contexts[i] = props.context;
         }
-        return abi.encode(handlers, masks);
+        return abi.encode(handlers, masks, contexts);
     }
 
     /**
