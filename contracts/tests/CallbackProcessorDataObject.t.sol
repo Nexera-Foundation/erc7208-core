@@ -72,13 +72,21 @@ contract CallbackProcessorDataObjectTest is Test {
             abi.encode(address(mockHandler), uint256(1), "")
         );
 
+        bytes memory newCtx = abi.encode("updated");
         vm.expectEmit(true, true, true, true);
         emit CallbackProcessorDataObject.CallbackHandlerUpdated(dp, address(mockHandler), uint256(3));
         dataIndex.write(
             IDataObject(address(dataObject)), dp,
             ICallbackProcessorOperations.registerCallback.selector,
-            abi.encode(address(mockHandler), uint256(3), "")
+            abi.encode(address(mockHandler), uint256(3), newCtx)
         );
+
+        // Verify updated mask and context via getCallbackHandlers
+        bytes memory result = dataObject.read(dp, ICallbackProcessorOperations.getCallbackHandlers.selector, "");
+        (address[] memory handlers, uint256[] memory masks, bytes[] memory contexts) = abi.decode(result, (address[], uint256[], bytes[]));
+        assertEq(handlers.length, 1, "Should still have one handler");
+        assertEq(masks[0], 3, "Mask should be updated");
+        assertEq(keccak256(contexts[0]), keccak256(newCtx), "Context should be updated");
     }
 
     // --- Unregistration ---
@@ -302,6 +310,8 @@ contract CallbackProcessorDataObjectTest is Test {
             abi.encode(address(reentrantHandler), type(uint256).max, "")
         );
 
+        // The reentrant handler is not an approved DataManager, so DataIndex rejects it
+        // before the reentrancy guard is even reached
         vm.expectRevert();
         dataIndex.write(
             IDataObject(address(dataObject)), dp,
@@ -418,6 +428,138 @@ contract CallbackProcessorDataObjectTest is Test {
         (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
         assertEq(handlers.length, 2, "Should return two handlers");
         assertEq(masks.length, 2, "Should return two masks");
+    }
+
+    // --- updateCallbackMask ---
+
+    function test_UpdateCallbackMask() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), uint256(1), "")
+        );
+
+        vm.expectEmit(true, true, true, true);
+        emit CallbackProcessorDataObject.CallbackHandlerUpdated(dp, address(mockHandler), uint256(3));
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.updateCallbackMask.selector,
+            abi.encode(address(mockHandler), uint256(3))
+        );
+
+        // Verify mask was updated via getCallbackHandlers
+        bytes memory result = dataObject.read(dp, ICallbackProcessorOperations.getCallbackHandlers.selector, "");
+        (address[] memory handlers, uint256[] memory masks,) = abi.decode(result, (address[], uint256[], bytes[]));
+        assertEq(handlers.length, 1);
+        assertEq(masks[0], 3, "Mask should be updated to 3");
+    }
+
+    function test_UpdateCallbackMaskPreservesContext() public {
+        bytes memory ctx = abi.encode("preserved");
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), uint256(1), ctx)
+        );
+
+        // Update mask only
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.updateCallbackMask.selector,
+            abi.encode(address(mockHandler), uint256(7))
+        );
+
+        // Verify context is preserved
+        bytes memory result = dataObject.read(dp, ICallbackProcessorOperations.getCallbackHandlers.selector, "");
+        (,, bytes[] memory contexts) = abi.decode(result, (address[], uint256[], bytes[]));
+        assertEq(keccak256(contexts[0]), keccak256(ctx), "Context should be preserved after mask update");
+    }
+
+    function test_UpdateCallbackMaskToZeroDisablesHandler() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), type(uint256).max, "")
+        );
+
+        // Set mask to 0
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.updateCallbackMask.selector,
+            abi.encode(address(mockHandler), uint256(0))
+        );
+
+        // Execute — handler should NOT be called since mask is 0
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("data"))
+        );
+        assertEq(mockHandler.callCount(), 0, "Handler with mask 0 should not be called");
+    }
+
+    function test_UpdateCallbackMaskRevertsForNonRegisteredHandler() public {
+        vm.expectRevert(abi.encodeWithSelector(CallbackProcessorDataObject.CallbackHandlerNotRegistered.selector, address(mockHandler)));
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.updateCallbackMask.selector,
+            abi.encode(address(mockHandler), uint256(1))
+        );
+    }
+
+    // --- DataPoint isolation ---
+
+    function test_HandlersAreIsolatedPerDataPoint() public {
+        DataPoint dp2 = registry.allocate(address(this));
+        dataObject.setDataIndexImplementation(dp2, address(dataIndex));
+        dataIndex.allowDataManager(dp2, address(this), true);
+
+        MockCallbackHandler handler2 = new MockCallbackHandler();
+
+        // Register handler on dp1
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), type(uint256).max, "")
+        );
+        // Register different handler on dp2
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp2,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(handler2), type(uint256).max, "")
+        );
+
+        // Execute on dp1 — only mockHandler should be called
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(1), abi.encode("data"))
+        );
+        assertEq(mockHandler.callCount(), 1, "dp1 handler should be called");
+        assertEq(handler2.callCount(), 0, "dp2 handler should not be called for dp1");
+
+        // Verify dp2 handlers don't include dp1's handler
+        bytes memory result = dataObject.read(dp2, ICallbackProcessorOperations.getCallbackHandlers.selector, "");
+        (address[] memory handlers,,) = abi.decode(result, (address[], uint256[], bytes[]));
+        assertEq(handlers.length, 1, "dp2 should have one handler");
+        assertEq(handlers[0], address(handler2), "dp2 handler should be handler2");
+    }
+
+    // --- Task zero ---
+
+    function test_TaskZeroCallsNoHandlers() public {
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ICallbackProcessorOperations.registerCallback.selector,
+            abi.encode(address(mockHandler), type(uint256).max, "")
+        );
+
+        dataIndex.write(
+            IDataObject(address(dataObject)), dp,
+            ISampleCallbackOperations.execute.selector,
+            abi.encode(uint256(0), abi.encode("data"))
+        );
+        assertEq(mockHandler.callCount(), 0, "No handler should be called for task=0");
     }
 
     // --- Context passing ---
