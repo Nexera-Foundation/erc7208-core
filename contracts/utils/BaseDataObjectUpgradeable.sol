@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IERC165} from "@openzeppelin/contracts/interfaces/IERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IDataObject} from "../interfaces/IDataObject.sol";
 import {IBaseDataObject} from "../interfaces/IBaseDataObject.sol";
@@ -184,7 +184,7 @@ abstract contract BaseDataObjectUpgradeable is IBaseDataObject, AccessControlUpg
      * @dev Reverts if it's not valid address
      */
     function _requireDataIndexIsValid(address newDataIndex) internal view virtual {
-        if (!IERC165(newDataIndex).supportsInterface(type(IERC165).interfaceId) || !IERC165(newDataIndex).supportsInterface(type(IDataIndex).interfaceId))
+        if (!ERC165Checker.supportsInterface(newDataIndex, type(IDataIndex).interfaceId))
             revert IncorrectDataIndexImplementationAddress(newDataIndex);
     }
 
