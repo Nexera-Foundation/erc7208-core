@@ -46,6 +46,16 @@ at the `_dispatchWrite` level.
 **Why not fixing:** This is a reference implementation, not a framework. Projects
 needing deeper customization can create their own CallbackProcessor.
 
+## 7. `ISampleDataObjectOperations` duplicated across standard and upgradeable examples
+
+`ISampleDataObjectOperations` is defined in both `SampleDataObject.sol` and
+`SampleDataObjectUpgradeable.sol`.
+
+**Why not fixing:** Project convention is to co-locate the Operations interface
+in the same file as the DataObject that uses it. Since the upgradeable variant
+shares most code with the original, duplicating the small Operations interface
+keeps each file self-contained and avoids an extra import.
+
 ## 6. Handler execution order is not guaranteed
 
 `EnumerableSet` does not preserve insertion order. Handler invocation sequence
