@@ -163,7 +163,7 @@ abstract contract CallbackProcessorDataObjectUpgradeable is BaseDataObjectUpgrad
      * Extension point to customize callback result processing
      * param dp DataPoint to work with
      * param task task to handle
-     * param handler address of handler
+     * param handler address of the handler
      * param result data returned by the callback
      */
     function _onCallbackHandlerSuccess(DataPoint /*dp*/, uint256 /*task*/, address /*handler*/, bytes memory /*result*/) internal virtual {}

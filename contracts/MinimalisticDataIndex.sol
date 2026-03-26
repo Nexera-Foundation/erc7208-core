@@ -53,7 +53,7 @@ contract MinimalisticDataIndex is IDataIndex, ERC165 {
     }
 
     /**
-     * @notice Allows access only to DataManagers which was previously approved
+     * @notice Allows access only to DataManagers that were previously approved
      * @param dp DataPoint to check DataManager approval for
      */
     modifier onlyApprovedDM(DataPoint dp) {

@@ -50,8 +50,8 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
      * Executes requested read operation
      * Extending DataObject SHOULD override this function and call `super._dispatchRead()`
      * for operations it does not handle.
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
      * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
      * param data Operation arguments. It's recommended to use ABI encoding for this
@@ -65,8 +65,8 @@ abstract contract BaseDataObject is IBaseDataObject, AccessControl {
      * Executes requested write operation
      * Extending DataObject SHOULD override this function and call `super._dispatchWrite()`
      * for operations it does not handle.
-     * @dev It's recommended to NOT include actual function implementation to this function directly.
-     * Instead this one should just chouse the correct internal function with actual implementation
+     * @dev It's recommended to NOT include actual function implementation in this function directly.
+     * Instead it should just choose the correct internal function with actual implementation
      * param dp DataPoint with the data we should work on
      * @param operation Operation to execute
      * param data Operation arguments. It's recommended to use ABI encoding for this

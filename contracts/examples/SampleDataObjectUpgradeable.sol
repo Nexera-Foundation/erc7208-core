@@ -40,18 +40,18 @@ contract SampleDataObjectUpgradeable is BaseDataObjectUpgradeable {
         uint256 value;
     }
 
-    /// @custom:storage-location erc7201:projectZero.prompt-mining.storage.SampleDataObject
+    /// @custom:storage-location erc7201:nexera-foundation.erc7208-core.storage.SampleDataObject
     struct SampleDataObjectStorage {
         /// @dev Data for each DataPoint
         mapping(DataPoint => DpData) dpData;
     }
 
-    // keccak256(abi.encode(uint256(keccak256("projectZero.prompt-mining.storage.SampleDataObject")) - 1)) & ~bytes32(uint256(0xff))
-    bytes32 private constant BaseDataObjectStorageLocation = 0x884288cc3c41441b229fb4daf37dcad4a400c1107d5a7b0727828bb7ccdc3500;
+    // keccak256(abi.encode(uint256(keccak256("nexera-foundation.erc7208-core.storage.SampleDataObject")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant SampleDataObjectStorageLocation = 0x595f5a36d7478328c39eb67e59b3ee75d2d59e4291c3b7215e6f258997cc4e00;
 
     function _getSampleDataObjectStorage() private pure returns (SampleDataObjectStorage storage $) {
         assembly {
-            $.slot := BaseDataObjectStorageLocation
+            $.slot := SampleDataObjectStorageLocation
         }
     }
 
